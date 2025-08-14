@@ -1,0 +1,7 @@
+name: MaceControl
+version: '1.0-SNAPSHOT'
+main: net.macecontrol.Main
+api-version: '1.21'
+load: STARTUP
+authors: [ ___Pumpkinn ]
+description: Mace Control

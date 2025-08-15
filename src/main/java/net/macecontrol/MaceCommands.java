@@ -31,48 +31,47 @@ public class MaceCommands implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (command.getName().equalsIgnoreCase("macefind")) {
+            return handleMacefindCommand(sender);
+        } else if (command.getName().equalsIgnoreCase("maceclean")) {
+            return handleMacecleanCommand(sender);
+        }
+        return false;
+    }
+
+    private boolean handleMacefindCommand(CommandSender sender) {
         if (!sender.hasPermission("stupidmacecontrol.macefind")) {
             sender.sendMessage("§cYou don't have permission to use this command!");
             return true;
         }
 
-        sender.sendMessage("§6Scanning for players with 3 maces...");
+        sender.sendMessage("§6Scanning for maces on the server...");
 
-        List<String> playersWithThreeMaces = new ArrayList<>();
+        List<String> playersWithMaces = new ArrayList<>();
         Map<String, MaceInfo> playerMaceDetails = new HashMap<>();
+        int totalValidMaces = 0;
 
         // Check online players
         for (Player player : Bukkit.getOnlinePlayers()) {
             MaceInfo maceInfo = scanPlayerForMaces(player);
-            if (maceInfo.totalMaces >= 3 || maceInfo.hasMace3) {
-                playersWithThreeMaces.add(player.getName() + " §a(Online)");
+            if (maceInfo.totalValidMaces > 0) {
+                playersWithMaces.add(player.getName() + " §a(Online)");
                 playerMaceDetails.put(player.getName(), maceInfo);
+                totalValidMaces += maceInfo.totalValidMaces;
             }
         }
 
-        // Also check from data manager
-        Map<UUID, Integer> playerMaceCount = dataManager.getPlayerMaceCount();
-        for (Map.Entry<UUID, Integer> entry : playerMaceCount.entrySet()) {
-            if (entry.getValue() >= 3) {
-                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(entry.getKey());
-                String playerName = offlinePlayer.getName();
-                if (playerName != null) {
-                    boolean alreadyAdded = playersWithThreeMaces.stream()
-                            .anyMatch(name -> name.startsWith(playerName));
-                    if (!alreadyAdded) {
-                        playersWithThreeMaces.add(playerName + " §7(Offline - " + entry.getValue() + " maces crafted)");
-                    }
-                }
-            }
-        }
+        sender.sendMessage("§6Mace Status Report:");
+        sender.sendMessage("§6" + "=".repeat(40));
+        sender.sendMessage("§eTotal valid maces on server: §6" + totalValidMaces + "§e/§63");
+        sender.sendMessage("§eTotal maces crafted: §6" + dataManager.getTotalMacesCrafted());
 
-        if (playersWithThreeMaces.isEmpty()) {
-            sender.sendMessage("§aNo players found with 3 maces!");
+        if (playersWithMaces.isEmpty()) {
+            sender.sendMessage("§cNo players currently have valid maces!");
         } else {
-            sender.sendMessage("§6Players with 3 maces found:");
-            sender.sendMessage("§6" + "=".repeat(40));
+            sender.sendMessage("§6Players with maces:");
 
-            for (String playerInfo : playersWithThreeMaces) {
+            for (String playerInfo : playersWithMaces) {
                 sender.sendMessage("§e• " + playerInfo);
 
                 String playerName = playerInfo.split(" ")[0];
@@ -81,10 +80,21 @@ public class MaceCommands implements CommandExecutor {
                     sender.sendMessage("  §7Details: " + details.getDetailsString());
                 }
             }
-
-            sender.sendMessage("§6" + "=".repeat(40));
-            sender.sendMessage("§6Total: §e" + playersWithThreeMaces.size() + " §6player(s)");
         }
+
+        sender.sendMessage("§6" + "=".repeat(40));
+        return true;
+    }
+
+    private boolean handleMacecleanCommand(CommandSender sender) {
+        if (!sender.hasPermission("stupidmacecontrol.maceclean")) {
+            sender.sendMessage("§cYou don't have permission to use this command!");
+            return true;
+        }
+
+        sender.sendMessage("§6Cleaning invalid maces from all online players...");
+        plugin.getMaceControl().cleanAllOnlinePlayers();
+        sender.sendMessage("§aClean completed! Invalid maces have been removed from all online players.");
 
         return true;
     }
@@ -103,12 +113,11 @@ public class MaceCommands implements CommandExecutor {
 
         for (ItemStack item : allItems) {
             if (item != null && item.getType() == Material.MACE) {
-                info.totalMaces++;
-
                 ItemMeta meta = item.getItemMeta();
                 if (meta != null) {
                     Integer maceNumber = meta.getPersistentDataContainer().get(maceNumberKey, PersistentDataType.INTEGER);
-                    if (maceNumber != null) {
+                    if (maceNumber != null && maceNumber >= 1 && maceNumber <= 3) {
+                        info.totalValidMaces++;
                         switch (maceNumber) {
                             case 1 -> {
                                 info.hasMace1 = true;
@@ -118,8 +127,10 @@ public class MaceCommands implements CommandExecutor {
                             case 3 -> info.hasMace3 = true;
                         }
                     } else {
-                        info.unnumberedMaces++;
+                        info.invalidMaces++;
                     }
+                } else {
+                    info.invalidMaces++;
                 }
             }
         }
@@ -127,16 +138,16 @@ public class MaceCommands implements CommandExecutor {
     }
 
     private static class MaceInfo {
-        int totalMaces = 0;
+        int totalValidMaces = 0;
+        int invalidMaces = 0;
         boolean hasMace1 = false;
         boolean hasMace2 = false;
         boolean hasMace3 = false;
         boolean mace1Enchanted = false;
-        int unnumberedMaces = 0;
 
         String getDetailsString() {
             StringBuilder sb = new StringBuilder();
-            sb.append(totalMaces).append(" maces total");
+            sb.append(totalValidMaces).append(" valid maces");
 
             if (hasMace1 || hasMace2 || hasMace3) {
                 sb.append(" (");
@@ -147,8 +158,8 @@ public class MaceCommands implements CommandExecutor {
                 sb.append(String.join(", ", maces)).append(")");
             }
 
-            if (unnumberedMaces > 0) {
-                sb.append(", ").append(unnumberedMaces).append(" unnumbered");
+            if (invalidMaces > 0) {
+                sb.append(", ").append(invalidMaces).append(" invalid");
             }
 
             return sb.toString();

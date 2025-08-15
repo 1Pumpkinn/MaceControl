@@ -15,7 +15,7 @@ public final class Main extends JavaPlugin {
         dataManager = new PluginDataManager(this);
         maceControl = new net.macecontrol.MaceControl(this, dataManager);
         potionRestrictions = new net.macecontrol.PotionRestrictions();
-
+        SkriptConversion skriptConversion = new SkriptConversion(this);
 
 
 
@@ -23,6 +23,7 @@ public final class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(maceControl, this);
         getServer().getPluginManager().registerEvents(new net.macecontrol.HeavyCoreInteractions(), this);
         getServer().getPluginManager().registerEvents(potionRestrictions, this);
+        getServer().getPluginManager().registerEvents(skriptConversion, this);
 
 
 
@@ -31,7 +32,8 @@ public final class Main extends JavaPlugin {
         net.macecontrol.MaceCommands maceCommands = new net.macecontrol.MaceCommands(this, dataManager);
         getCommand("macefind").setExecutor(maceCommands);
         getCommand("maceclean").setExecutor(maceCommands);
-
+        getCommand("spawn").setExecutor(skriptConversion);
+        getCommand("setspawn").setExecutor(skriptConversion);
 
 
 

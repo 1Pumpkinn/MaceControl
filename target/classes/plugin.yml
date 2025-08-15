@@ -7,6 +7,18 @@ authors: [ ___Pumpkinn ]
 description: Mace Control with Potion Restrictions
 
 commands:
+  commands:
+    giveweapon:
+      description: Give custom weapons to players
+      permission: stupidmacecontrol.giveweapon
+      usage: /<command> <player> <weapon>
+  setspawn:
+    description: Set the server spawn location
+    usage: /setspawn
+    permission: stupidmacecontrol.setspawn
+  spawn:
+    description: Teleport to spawn
+    usage: /spawn
   macefind:
     description: Find players with maces and show server mace status
     usage: /macefind
@@ -22,4 +34,9 @@ permissions:
     default: op
   stupidmacecontrol.maceclean:
     description: Allows use of /maceclean command
+    default: op
+  stupidmacecontrol.setspawn:
+    description: Allows setting the spawn location
+    default: op
+  stupidmacecontrol.giveweapon:
     default: op

@@ -47,8 +47,7 @@ public class SkriptConversion implements Listener, CommandExecutor {
     private static final List<Enchantment> BANNED_ENCHANTS = Arrays.asList(
             Enchantment.KNOCKBACK,
             Enchantment.FIRE_ASPECT,
-            Enchantment.FLAME
-    );
+            Enchantment.FLAME);
 
     // Custom weapon names - centralized for easy management
     private static final String THOR_HAMMER_NAME = "§eThor's Hammer";

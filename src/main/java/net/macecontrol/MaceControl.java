@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
@@ -35,24 +36,36 @@ public class MaceControl implements Listener {
         this.maceNumberKey = new NamespacedKey(plugin, "mace_number");
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         ItemStack result = event.getInventory().getResult();
 
         // Only process if it's a mace
         if (result == null || result.getType() != Material.MACE) return;
 
-        // Check if server already has 3 maces
-        if (dataManager.getTotalMacesCrafted() >= maxMaces) {
+        // Check if server already has 3 maces - fixed logic
+        int currentMaceCount = dataManager.getTotalMacesCrafted();
+
+        // Debug message for testing (remove in production)
+        if (event.getView().getPlayer() instanceof Player) {
+            Player player = (Player) event.getView().getPlayer();
+            plugin.getLogger().info("Player " + player.getName() + " is trying to craft a mace. Current count: " + currentMaceCount);
+        }
+
+        if (currentMaceCount >= maxMaces) {
             event.getInventory().setResult(null);
+            if (event.getView().getPlayer() instanceof Player) {
+                Player player = (Player) event.getView().getPlayer();
+                player.sendMessage("§cAll " + maxMaces + " maces have already been crafted on this server!");
+            }
             return;
         }
 
-        // Add persistent data to mace
+        // Add persistent data to mace - only if we can still craft one
         ItemStack mace = result.clone();
         ItemMeta meta = mace.getItemMeta();
         if (meta != null) {
-            int maceNumber = dataManager.getTotalMacesCrafted() + 1;
+            int maceNumber = currentMaceCount + 1;
             meta.getPersistentDataContainer().set(maceNumberKey, PersistentDataType.INTEGER, maceNumber);
             meta.setDisplayName("§6Mace #" + maceNumber);
             mace.setItemMeta(meta);
@@ -60,11 +73,21 @@ public class MaceControl implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onCraftItem(CraftItemEvent event) {
         ItemStack result = event.getCurrentItem();
 
         if (result == null || result.getType() != Material.MACE) return;
+
+        // Double-check the limit before allowing the craft
+        if (dataManager.getTotalMacesCrafted() >= maxMaces) {
+            event.setCancelled(true);
+            if (event.getWhoClicked() instanceof Player) {
+                Player player = (Player) event.getWhoClicked();
+                player.sendMessage("§cAll " + maxMaces + " maces have already been crafted on this server!");
+            }
+            return;
+        }
 
         // Check if this mace has our number tag
         ItemMeta meta = result.getItemMeta();
@@ -78,6 +101,16 @@ public class MaceControl implements Listener {
 
             // Announce to server
             Bukkit.broadcastMessage("§6Mace #" + maceNumber + " §ehas been crafted by §6" + player.getName() + "§e! §7(" + dataManager.getTotalMacesCrafted() + "/" + maxMaces + ")");
+
+            // Log for debugging (remove in production)
+            plugin.getLogger().info("Mace #" + maceNumber + " crafted by " + player.getName() + ". Total maces now: " + dataManager.getTotalMacesCrafted());
+        } else {
+            // This shouldn't happen with our prepare logic, but just in case
+            event.setCancelled(true);
+            if (event.getWhoClicked() instanceof Player) {
+                Player player = (Player) event.getWhoClicked();
+                player.sendMessage("§cError: Invalid mace detected! Crafting cancelled.");
+            }
         }
     }
 

@@ -17,14 +17,11 @@ public final class Main extends JavaPlugin {
         potionRestrictions = new net.macecontrol.PotionRestrictions();
         SkriptConversion skriptConversion = new SkriptConversion(this);
 
-
-
         // Register event listeners
         getServer().getPluginManager().registerEvents(maceControl, this);
         getServer().getPluginManager().registerEvents(new net.macecontrol.HeavyCoreInteractions(), this);
         getServer().getPluginManager().registerEvents(potionRestrictions, this);
         getServer().getPluginManager().registerEvents(skriptConversion, this);
-
 
 
 
@@ -34,15 +31,22 @@ public final class Main extends JavaPlugin {
         getCommand("maceclean").setExecutor(maceCommands);
         getCommand("spawn").setExecutor(skriptConversion);
         getCommand("setspawn").setExecutor(skriptConversion);
+        getCommand("giveweapon").setExecutor(skriptConversion);
 
 
 
 
         getLogger().info("-- Mace limit: 3 maces ENABLED --");
+        getLogger().info("-- Current maces crafted: " + dataManager.getTotalMacesCrafted() + "/3 --");
     }
 
     @Override
     public void onDisable() {
+        // Save data when plugin shuts down
+        if (dataManager != null) {
+            dataManager.forceSave();
+            getLogger().info("Mace data saved on shutdown");
+        }
         getLogger().info("-- MACE CONTROL DISABLED --");
     }
 

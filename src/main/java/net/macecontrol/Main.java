@@ -1,5 +1,6 @@
 package net.macecontrol;
 
+import net.macecontrol.managers.PluginDataManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Main extends JavaPlugin {
@@ -17,6 +18,7 @@ public final class Main extends JavaPlugin {
         potionRestrictions = new net.macecontrol.PotionRestrictions();
         SkriptConversion skriptConversion = new SkriptConversion(this);
 
+
         // Register event listeners
         getServer().getPluginManager().registerEvents(maceControl, this);
         getServer().getPluginManager().registerEvents(new net.macecontrol.HeavyCoreInteractions(), this);
@@ -25,16 +27,18 @@ public final class Main extends JavaPlugin {
 
 
 
+
         // Register commands
         net.macecontrol.MaceCommands maceCommands = new net.macecontrol.MaceCommands(this, dataManager);
-        getCommand("macefind").setExecutor(maceCommands);
-        getCommand("maceclean").setExecutor(maceCommands);
+        this.getCommand("macefind").setExecutor(maceCommands);
+        this.getCommand("maceclean").setExecutor(maceCommands);
+        this.getCommand("macereset").setExecutor(maceCommands);
+        this.getCommand("macecount").setExecutor(maceCommands);
+
+
         getCommand("spawn").setExecutor(skriptConversion);
         getCommand("setspawn").setExecutor(skriptConversion);
         getCommand("giveweapon").setExecutor(skriptConversion);
-
-
-
 
         getLogger().info("-- Mace limit: 3 maces ENABLED --");
         getLogger().info("-- Current maces crafted: " + dataManager.getTotalMacesCrafted() + "/3 --");

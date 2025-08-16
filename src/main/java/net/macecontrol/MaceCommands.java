@@ -1,5 +1,6 @@
 package net.macecontrol;
 
+import net.macecontrol.managers.PluginDataManager;
 import org.bukkit.*;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
@@ -36,6 +37,10 @@ public class MaceCommands implements CommandExecutor {
             return handleMacefindCommand(sender);
         } else if (command.getName().equalsIgnoreCase("maceclean")) {
             return handleMacecleanCommand(sender);
+        } else if (command.getName().equalsIgnoreCase("macereset")) {
+            return handleMaceresetCommand(sender, args);
+        } else if (command.getName().equalsIgnoreCase("macecount")) {
+            return handleMacecountCommand(sender, args);
         }
         return false;
     }
@@ -134,6 +139,56 @@ public class MaceCommands implements CommandExecutor {
         return true;
     }
 
+    private boolean handleMaceresetCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("stupidmacecontrol.macereset")) {
+            sender.sendMessage("§cYou don't have permission to use this command!");
+            return true;
+        }
+
+        if (args.length > 0 && args[0].equalsIgnoreCase("confirm")) {
+            dataManager.resetMaceData();
+            sender.sendMessage("§aAll mace data has been reset! Players can now craft maces again.");
+            sender.sendMessage("§7Remember: Only 3 maces total, #1 can be enchanted.");
+            Bukkit.broadcastMessage("§6Server mace data has been reset by an admin! Mace crafting is now available again.");
+        } else {
+            sender.sendMessage("§cThis will reset ALL mace data and allow new maces to be crafted!");
+            sender.sendMessage("§cType '§e/macereset confirm§c' to proceed.");
+        }
+        return true;
+    }
+
+    private boolean handleMacecountCommand(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("stupidmacecontrol.macecount")) {
+            sender.sendMessage("§cYou don't have permission to use this command!");
+            return true;
+        }
+
+        if (args.length == 0) {
+            // Show current count
+            sender.sendMessage("§6Current mace count: §e" + dataManager.getTotalMacesCrafted() + "/3");
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("set") && args.length > 1) {
+            try {
+                int newCount = Integer.parseInt(args[1]);
+                if (newCount >= 0 && newCount <= 3) { // Validate range here instead
+                    dataManager.setTotalMacesCrafted(newCount);
+                    sender.sendMessage("§aMace count set to: §6" + newCount + "/3");
+                    Bukkit.broadcastMessage("§6Server mace count has been adjusted by an admin to " + newCount + "/3");
+                } else {
+                    sender.sendMessage("§cInvalid count! Must be between 0 and 3.");
+                }
+            } catch (NumberFormatException e) {
+                sender.sendMessage("§cInvalid number! Usage: /macecount set <0-3>");
+            }
+        } else {
+            sender.sendMessage("§cUsage: /macecount [set <0-3>]");
+        }
+
+        return true;
+    }
+
     private MaceInfo scanPlayerForMaces(Player player) {
         MaceInfo info = new MaceInfo();
 
@@ -199,12 +254,16 @@ public class MaceCommands implements CommandExecutor {
                     if (maceNumber != null && maceNumber >= 1 && maceNumber <= 3) {
                         info.totalValidMaces++;
                         switch (maceNumber) {
-                            case 1 -> {
+                            case 1:
                                 info.hasMace1 = true;
                                 info.mace1Enchanted = !meta.getEnchants().isEmpty();
-                            }
-                            case 2 -> info.hasMace2 = true;
-                            case 3 -> info.hasMace3 = true;
+                                break;
+                            case 2:
+                                info.hasMace2 = true;
+                                break;
+                            case 3:
+                                info.hasMace3 = true;
+                                break;
                         }
                     } else {
                         info.invalidMaces++;

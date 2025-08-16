@@ -1,8 +1,5 @@
-package net.macecontrol;
+package net.macecontrol.managers;
 
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -45,7 +42,7 @@ public class PluginDataManager {
             totalMacesCrafted = dataConfig.getInt("totalMacesCrafted");
             plugin.getLogger().info("Loaded mace data: " + totalMacesCrafted + " maces have been crafted");
         } else {
-            plugin.getLogger().info("No existing mace data found");
+            plugin.getLogger().info("No existing mace data found, starting fresh");
         }
 
         // Load player mace counts if they exist

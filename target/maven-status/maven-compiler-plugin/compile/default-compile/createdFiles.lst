@@ -1,10 +1,16 @@
 net\macecontrol\SkriptConversion$1.class
+net\macecontrol\utils\EnchantmentManager.class
 net\macecontrol\MaceCommands$MaceInfo.class
+net\macecontrol\MaceControl$1.class
 net\macecontrol\Main.class
 net\macecontrol\SkriptConversion.class
+net\macecontrol\managers\CombatManager.class
+net\macecontrol\managers\CombatManager$2.class
+net\macecontrol\managers\CustomWeaponsManager.class
 net\macecontrol\SkriptConversion$2.class
+net\macecontrol\managers\CombatManager$1.class
 net\macecontrol\PotionRestrictions.class
 net\macecontrol\HeavyCoreInteractions.class
 net\macecontrol\MaceControl.class
+net\macecontrol\managers\PluginDataManager.class
 net\macecontrol\MaceCommands.class
-net\macecontrol\PluginDataManager.class

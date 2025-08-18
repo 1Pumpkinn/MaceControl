@@ -55,7 +55,7 @@ public class PotionRestrictions implements Listener {
 
         if (hasRestrictedEffects(item)) {
             event.setCancelled(true);
-            player.sendMessage("§cYou cannot drink Strength or Speed potions!");
+            player.sendMessage("§cYou cannot drink Strength Speed or Fire Resistance potions!");
             player.updateInventory();
         }
     }
@@ -73,14 +73,14 @@ public class PotionRestrictions implements Listener {
             // Notify the thrower if it's a player
             if (potion.getShooter() instanceof Player) {
                 Player thrower = (Player) potion.getShooter();
-                thrower.sendMessage("§cStrength and Speed splash potions are disabled!");
+                thrower.sendMessage("§cStrength Speed or Fire Resistance potions are disabled!");
             }
 
             // Also notify affected entities if they're players
             for (org.bukkit.entity.LivingEntity entity : event.getAffectedEntities()) {
                 if (entity instanceof Player) {
                     Player affected = (Player) entity;
-                    affected.sendMessage("§cStrength and Speed potions are disabled on this server!");
+                    affected.sendMessage("§cStrength Speed or Fire Resistance are disabled on this server!");
                 }
             }
         }

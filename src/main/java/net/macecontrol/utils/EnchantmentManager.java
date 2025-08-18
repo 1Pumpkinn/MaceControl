@@ -16,9 +16,12 @@ import java.util.Random;
 
 public class EnchantmentManager implements Listener {
 
-    private static final List<Enchantment> BANNED_ENCHANTS = Arrays.asList(
+    private static final List<Enchantment> BANNED_SWORD_ENCHANTS = Arrays.asList(
             Enchantment.KNOCKBACK,
-            Enchantment.FIRE_ASPECT,
+            Enchantment.FIRE_ASPECT
+    );
+
+    private static final List<Enchantment> BANNED_BOW_ENCHANTS = Arrays.asList(
             Enchantment.FLAME
     );
 
@@ -26,7 +29,8 @@ public class EnchantmentManager implements Listener {
     @EventHandler
     public void onPrepareItemEnchant(PrepareItemEnchantEvent event) {
         ItemStack item = event.getItem();
-        if (!isSword(item)) return;
+        List<Enchantment> bannedEnchants = getBannedEnchantsForItem(item);
+        if (bannedEnchants.isEmpty()) return;
 
         Random random = new Random();
         for (int i = 0; i < event.getOffers().length; i++) {
@@ -34,7 +38,7 @@ public class EnchantmentManager implements Listener {
 
             // Force reroll if banned
             int attempts = 0;
-            while (BANNED_ENCHANTS.contains(event.getOffers()[i].getEnchantment()) && attempts < 20) {
+            while (bannedEnchants.contains(event.getOffers()[i].getEnchantment()) && attempts < 20) {
                 Enchantment[] possible = Enchantment.values();
                 Enchantment newEnchant;
                 int newLevel;
@@ -43,7 +47,7 @@ public class EnchantmentManager implements Listener {
                     newEnchant = possible[random.nextInt(possible.length)];
                     newLevel = random.nextInt(newEnchant.getMaxLevel()) + 1;
                     attempts++;
-                } while (BANNED_ENCHANTS.contains(newEnchant) || !newEnchant.canEnchantItem(item));
+                } while (bannedEnchants.contains(newEnchant) || !newEnchant.canEnchantItem(item));
 
                 if (attempts < 20) {
                     event.getOffers()[i].setEnchantment(newEnchant);
@@ -57,11 +61,12 @@ public class EnchantmentManager implements Listener {
     @EventHandler
     public void onEnchantItem(EnchantItemEvent event) {
         ItemStack item = event.getItem();
-        if (!isSword(item)) return;
+        List<Enchantment> bannedEnchants = getBannedEnchantsForItem(item);
+        if (bannedEnchants.isEmpty()) return;
 
         // Check if any banned enchants are being added
         boolean hadBanned = false;
-        for (Enchantment enchant : BANNED_ENCHANTS) {
+        for (Enchantment enchant : bannedEnchants) {
             if (event.getEnchantsToAdd().containsKey(enchant)) {
                 event.getEnchantsToAdd().remove(enchant);
                 hadBanned = true;
@@ -78,12 +83,15 @@ public class EnchantmentManager implements Listener {
     @EventHandler
     public void onPrepareAnvil(PrepareAnvilEvent event) {
         ItemStack result = event.getResult();
-        if (result == null || !isSword(result)) return;
+        if (result == null) return;
+
+        List<Enchantment> bannedEnchants = getBannedEnchantsForItem(result);
+        if (bannedEnchants.isEmpty()) return;
 
         boolean hadBanned = false;
         ItemStack cleanedResult = result.clone();
 
-        for (Enchantment banned : BANNED_ENCHANTS) {
+        for (Enchantment banned : bannedEnchants) {
             if (cleanedResult.containsEnchantment(banned)) {
                 cleanedResult.removeEnchantment(banned);
                 hadBanned = true;
@@ -93,6 +101,18 @@ public class EnchantmentManager implements Listener {
         if (hadBanned) {
             event.setResult(cleanedResult);
         }
+    }
+
+    private List<Enchantment> getBannedEnchantsForItem(ItemStack item) {
+        if (item == null) return Arrays.asList();
+
+        if (isSword(item)) {
+            return BANNED_SWORD_ENCHANTS;
+        } else if (isBow(item)) {
+            return BANNED_BOW_ENCHANTS;
+        }
+
+        return Arrays.asList();
     }
 
     private boolean isSword(ItemStack item) {
@@ -107,7 +127,12 @@ public class EnchantmentManager implements Listener {
         ).contains(item.getType());
     }
 
+    private boolean isBow(ItemStack item) {
+        if (item == null) return false;
+        return item.getType() == Material.BOW;
+    }
+
     public static boolean isBannedEnchantment(Enchantment enchantment) {
-        return BANNED_ENCHANTS.contains(enchantment);
+        return BANNED_SWORD_ENCHANTS.contains(enchantment) || BANNED_BOW_ENCHANTS.contains(enchantment);
     }
 }

@@ -4,7 +4,7 @@ main: net.macecontrol.Main
 api-version: '1.21'
 load: STARTUP
 authors: [ ___Pumpkinn ]
-description: Mace Control with Potion Restrictions
+
 
 commands:
   giveweapon:
@@ -23,8 +23,8 @@ commands:
     usage: /macefind
     permission: stupidmacecontrol.macefind
   maceclean:
-    description: Clean invalid maces from online players
-    usage: /maceclean
+    description: Clean invalid maces from online players and reset mace data
+    usage: /maceclean [confirm]
     permission: stupidmacecontrol.maceclean
   macereset:
     description: Reset all mace data
@@ -40,14 +40,14 @@ permissions:
     description: Allows finding maces on the server
     default: op
   stupidmacecontrol.maceclean:
-      description: Allows cleaning invalid maces
-      default: op
+    description: Allows cleaning invalid maces and resetting mace data
+    default: op
   stupidmacecontrol.macereset:
-      description: Allows resetting mace data
-      default: op
+    description: Allows resetting mace data
+    default: op
   stupidmacecontrol.macecount:
-      description: Allows viewing/setting mace count
-      default: op
+    description: Allows viewing/setting mace count
+    default: op
   stupidmacecontrol.setspawn:
     description: Allows setting the spawn location
     default: op

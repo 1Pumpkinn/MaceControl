@@ -36,7 +36,7 @@ public class MaceCommands implements CommandExecutor {
         if (command.getName().equalsIgnoreCase("macefind")) {
             return handleMacefindCommand(sender);
         } else if (command.getName().equalsIgnoreCase("maceclean")) {
-            return handleMacecleanCommand(sender);
+            return handleMacecleanCommand(sender, args);
         } else if (command.getName().equalsIgnoreCase("macereset")) {
             return handleMaceresetCommand(sender, args);
         } else if (command.getName().equalsIgnoreCase("macecount")) {
@@ -126,17 +126,42 @@ public class MaceCommands implements CommandExecutor {
         return true;
     }
 
-    private boolean handleMacecleanCommand(CommandSender sender) {
+    private boolean handleMacecleanCommand(CommandSender sender, String[] args) {
         if (!sender.hasPermission("stupidmacecontrol.maceclean")) {
             sender.sendMessage("§cYou don't have permission to use this command!");
             return true;
         }
 
-        sender.sendMessage("§6Cleaning invalid maces from all online players...");
-        plugin.getMaceControl().cleanAllOnlinePlayers();
-        sender.sendMessage("§aClean completed! Invalid maces have been removed from all online players.");
+        if (args.length > 0 && args[0].equalsIgnoreCase("confirm")) {
+            sender.sendMessage("§6Cleaning invalid maces from all online players and resetting mace data...");
 
-        return true;
+            // Clean all online players
+            plugin.getMaceControl().cleanAllOnlinePlayers();
+
+            // Reset mace data to make maces craftable again
+            dataManager.resetMaceData();
+
+            sender.sendMessage("§aClean completed!");
+            sender.sendMessage("§a• Invalid maces have been removed from all online players");
+            sender.sendMessage("§a• Mace data has been reset - players can now craft maces again!");
+            sender.sendMessage("§7Remember: Only 3 maces total, #1 can be enchanted.");
+
+            // Broadcast the reset to all players
+            Bukkit.broadcastMessage("§6Server mace data has been reset by an admin!");
+            Bukkit.broadcastMessage("§eMace crafting is now available again. Invalid maces have been removed.");
+
+            return true;
+        } else {
+            sender.sendMessage("§e§lMACECLEAN - Enhanced Version");
+            sender.sendMessage("§7This command will:");
+            sender.sendMessage("§c• Remove ALL invalid maces from online players");
+            sender.sendMessage("§c• Reset mace crafting data (allows new maces to be crafted)");
+            sender.sendMessage("§c• Clear the macedata.yml file");
+            sender.sendMessage("");
+            sender.sendMessage("§eThis is a DESTRUCTIVE operation!");
+            sender.sendMessage("§cType '§e/maceclean confirm§c' to proceed.");
+            return true;
+        }
     }
 
     private boolean handleMaceresetCommand(CommandSender sender, String[] args) {

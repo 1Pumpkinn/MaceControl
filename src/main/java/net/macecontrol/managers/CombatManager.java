@@ -20,7 +20,7 @@ public class CombatManager implements Listener {
 
     private final JavaPlugin plugin;
     private final Map<UUID, Long> combatTimers = new HashMap<>();
-    private static final int COMBAT_COOLDOWN_SECONDS = 10;
+    private static final int COMBAT_COOLDOWN_SECONDS = 20;
 
     public CombatManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -93,8 +93,8 @@ public class CombatManager implements Listener {
 
             ItemStack chestplate = player.getInventory().getChestplate();
             if (chestplate != null && chestplate.getType() == Material.ELYTRA) {
-                // Don't remove dragon chestplate
-                if (CustomWeaponsManager.isCustomWeapon(chestplate)) continue;
+                // Don't remove custom items (you can add custom weapon checks here later)
+                // if (CustomWeaponsManager.isCustomWeapon(chestplate)) continue;
 
                 player.getInventory().setChestplate(null);
                 player.getInventory().addItem(chestplate);

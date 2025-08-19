@@ -1,4 +1,4 @@
-package net.macecontrol;
+package net.macecontrol.utils;
 
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;

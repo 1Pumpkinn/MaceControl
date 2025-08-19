@@ -2,14 +2,17 @@ package net.macecontrol;
 
 import net.macecontrol.managers.CombatManager;
 import net.macecontrol.managers.PluginDataManager;
-import net.macecontrol.utils.EnchantmentManager;
+import net.macecontrol.managers.EnchantmentManager;
+import net.macecontrol.utils.PotionRestrictions;
+import net.macecontrol.utils.SkriptConversion;
+import net.macecontrol.utils.TippedArrowRestrictions;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Main extends JavaPlugin {
 
     private PluginDataManager dataManager;
     private net.macecontrol.MaceControl maceControl;
-    private net.macecontrol.PotionRestrictions potionRestrictions;
+    private PotionRestrictions potionRestrictions;
     private CombatManager combatManager;
     private EnchantmentManager enchantmentManager;
 
@@ -19,7 +22,7 @@ public final class Main extends JavaPlugin {
 
         dataManager = new PluginDataManager(this);
         maceControl = new net.macecontrol.MaceControl(this, dataManager);
-        potionRestrictions = new net.macecontrol.PotionRestrictions();
+        potionRestrictions = new PotionRestrictions();
         SkriptConversion skriptConversion = new SkriptConversion(this);
 
         // Initialize new managers
@@ -30,6 +33,7 @@ public final class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(maceControl, this);
         getServer().getPluginManager().registerEvents(new net.macecontrol.HeavyCoreInteractions(), this);
         getServer().getPluginManager().registerEvents(potionRestrictions, this);
+        getServer().getPluginManager().registerEvents(new TippedArrowRestrictions(), this);
         getServer().getPluginManager().registerEvents(skriptConversion, this);
         getServer().getPluginManager().registerEvents(combatManager, this);
         getServer().getPluginManager().registerEvents(enchantmentManager, this);

@@ -10,6 +10,7 @@ net\macecontrol\managers\CustomWeaponsManager.class
 net\macecontrol\SkriptConversion$2.class
 net\macecontrol\managers\CombatManager$1.class
 net\macecontrol\PotionRestrictions.class
+net\macecontrol\TippedArrowRestrictions.class
 net\macecontrol\MaceControl.class
 net\macecontrol\managers\PluginDataManager.class
 net\macecontrol\MaceCommands.class

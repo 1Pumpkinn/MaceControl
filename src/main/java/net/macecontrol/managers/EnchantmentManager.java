@@ -1,8 +1,7 @@
-package net.macecontrol.utils;
+package net.macecontrol.managers;
 
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.enchantment.EnchantItemEvent;
@@ -17,7 +16,6 @@ import java.util.Random;
 public class EnchantmentManager implements Listener {
 
     private static final List<Enchantment> BANNED_SWORD_ENCHANTS = Arrays.asList(
-            Enchantment.KNOCKBACK,
             Enchantment.FIRE_ASPECT
     );
 

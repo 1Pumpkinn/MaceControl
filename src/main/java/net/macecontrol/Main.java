@@ -1,11 +1,7 @@
 package net.macecontrol;
 
-import net.macecontrol.managers.CombatManager;
 import net.macecontrol.managers.PluginDataManager;
 import net.macecontrol.managers.EnchantmentManager;
-import net.macecontrol.utils.DisableBedBombing;
-import net.macecontrol.utils.PotionRestrictions;
-import net.macecontrol.utils.TippedArrowRestrictions;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Main extends JavaPlugin {

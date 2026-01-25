@@ -4,8 +4,8 @@ C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\MaceContro
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\Main.java
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\CombatManager.java
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\CustomWeaponsManager.java
+C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\EnchantmentManager.java
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\PluginDataManager.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\PotionRestrictions.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\SkriptConversion.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\TippedArrowRestrictions.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\EnchantmentManager.java
+C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\DisableBedBombing.java
+C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\PotionRestrictions.java
+C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\TippedArrowRestrictions.java

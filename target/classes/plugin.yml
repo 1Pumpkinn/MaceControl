@@ -5,19 +5,7 @@ api-version: '1.21'
 load: STARTUP
 authors: [ ___Pumpkinn ]
 
-
 commands:
-  giveweapon:
-    description: Give custom weapons to players
-    permission: stupidmacecontrol.giveweapon
-    usage: /<command> <player> <weapon>
-  setspawn:
-    description: Set the server spawn location
-    usage: /setspawn
-    permission: stupidmacecontrol.setspawn
-  spawn:
-    description: Teleport to spawn
-    usage: /spawn
   macefind:
     description: Find all maces on the server
     usage: /macefind
@@ -35,22 +23,19 @@ commands:
     usage: /macecount [set <0-3>]
     permission: stupidmacecontrol.macecount
 
-permissions:
+
   stupidmacecontrol.macefind:
     description: Allows finding maces on the server
     default: op
+
   stupidmacecontrol.maceclean:
-    description: Allows cleaning invalid maces and resetting mace data
+    description: Allows cleaning invalid maces
     default: op
+
   stupidmacecontrol.macereset:
     description: Allows resetting mace data
     default: op
+
   stupidmacecontrol.macecount:
-    description: Allows viewing/setting mace count
-    default: op
-  stupidmacecontrol.setspawn:
-    description: Allows setting the spawn location
-    default: op
-  stupidmacecontrol.giveweapon:
-    description: Allows giving custom weapons
+    description: Allows viewing and setting mace count
     default: op

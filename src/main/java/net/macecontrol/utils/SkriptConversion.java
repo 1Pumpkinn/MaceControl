@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Trident;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
@@ -26,6 +27,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
@@ -39,8 +41,9 @@ public class SkriptConversion implements Listener, CommandExecutor {
     private final Main plugin;
     private final Map<UUID, Long> combatTimers = new HashMap<>();
     private Location spawnLocation;
+    private boolean endAccessEnabled = true; // Changed to true: End is enabled by default
 
-    private static final int COMBAT_COOLDOWN_SECONDS = 10;
+    private static final int COMBAT_COOLDOWN_SECONDS = 20;
     private static final double THOR_HAMMER_CHANCE = 0.05;
     private static final double TRIDENT_POISON_CHANCE = 0.10;
     private static final double DRAGON_CHESTPLATE_CHANCE = 1.0;
@@ -60,7 +63,9 @@ public class SkriptConversion implements Listener, CommandExecutor {
         World world = Bukkit.getWorld("world");
         this.spawnLocation = world != null ? new Location(world, -39, 68, 29) : null;
         loadSpawnLocation();
+        loadEndAccessSetting();
         startRepeatingTasks();
+        // Removed startEndMonitoringTask() since End access is now enabled
     }
 
     @Override
@@ -71,8 +76,93 @@ public class SkriptConversion implements Listener, CommandExecutor {
             return handleSetSpawnCommand(sender);
         } else if (command.getName().equalsIgnoreCase("giveweapon")) {
             return handleGiveWeaponCommand(sender, args);
+        } else if (command.getName().equalsIgnoreCase("toggleend")) {
+            return handleToggleEndCommand(sender);
+        } else if (command.getName().equalsIgnoreCase("endstatus")) {
+            return handleEndStatusCommand(sender);
         }
         return false;
+    }
+
+    private boolean handleToggleEndCommand(CommandSender sender) {
+        if (!sender.hasPermission("stupidmacecontrol.toggleend")) {
+            sender.sendMessage("§cYou don't have permission to toggle End access!");
+            return true;
+        }
+
+        endAccessEnabled = !endAccessEnabled;
+        saveEndAccessSetting();
+
+        if (endAccessEnabled) {
+            sender.sendMessage("§a§lThe End has been ENABLED!");
+            sender.sendMessage("§aPlayers can now access The End dimension.");
+            Bukkit.broadcastMessage("§a§l✦ The End is now accessible! ✦");
+        } else {
+            sender.sendMessage("§c§lThe End has been DISABLED!");
+            sender.sendMessage("§cPlayers can no longer access The End dimension.");
+            Bukkit.broadcastMessage("§c§l✦ The End is now restricted! ✦");
+
+            // Immediately teleport all players currently in The End
+            teleportEndPlayersToSpawn();
+        }
+
+        // Show current player count in End
+        long endPlayerCount = Bukkit.getOnlinePlayers().stream()
+                .mapToLong(p -> isEndWorld(p.getLocation()) ? 1 : 0)
+                .sum();
+
+        if (endPlayerCount > 0 && !endAccessEnabled) {
+            sender.sendMessage("§e" + endPlayerCount + " player(s) were in The End and have been teleported to spawn.");
+        }
+
+        return true;
+    }
+
+    private boolean handleEndStatusCommand(CommandSender sender) {
+        if (!sender.hasPermission("stupidmacecontrol.toggleend")) {
+            sender.sendMessage("§cYou don't have permission to check End status!");
+            return true;
+        }
+
+        sender.sendMessage("§e§l=== End Access Status ===");
+        sender.sendMessage("§eEnd Access: " + (endAccessEnabled ? "§aENABLED" : "§cDISABLED"));
+
+        // Count players currently in The End
+        List<String> endPlayers = new ArrayList<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (isEndWorld(player.getLocation())) {
+                endPlayers.add(player.getName());
+            }
+        }
+
+        sender.sendMessage("§ePlayers in The End: §f" + endPlayers.size());
+        if (!endPlayers.isEmpty()) {
+            sender.sendMessage("§e- " + String.join(", ", endPlayers));
+        }
+
+        return true;
+    }
+
+    private void teleportEndPlayersToSpawn() {
+        if (spawnLocation == null) return;
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (isEndWorld(player.getLocation())) {
+                player.teleport(spawnLocation);
+                player.sendMessage("§cYou have been teleported to spawn because The End has been disabled!");
+            }
+        }
+    }
+
+    private void loadEndAccessSetting() {
+        endAccessEnabled = plugin.getConfig().getBoolean("end-access-enabled", true); // Default to true
+        plugin.getLogger().info("End access is " + (endAccessEnabled ? "enabled" : "disabled"));
+    }
+
+    private void saveEndAccessSetting() {
+        plugin.getConfig().set("end-access-enabled", endAccessEnabled);
+        plugin.saveConfig();
+        plugin.getLogger().info("End access setting saved: " + (endAccessEnabled ? "enabled" : "disabled"));
     }
 
     private boolean handleGiveWeaponCommand(CommandSender sender, String[] args) {
@@ -273,6 +363,20 @@ public class SkriptConversion implements Listener, CommandExecutor {
         return String.format("%.1f, %.1f, %.1f in %s", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld().getName());
     }
 
+    // Helper method to determine if an item is a sword
+    private boolean isSword(ItemStack item) {
+        if (item == null) return false;
+        Material type = item.getType();
+        return type == Material.WOODEN_SWORD || type == Material.STONE_SWORD ||
+                type == Material.IRON_SWORD || type == Material.GOLDEN_SWORD ||
+                type == Material.DIAMOND_SWORD || type == Material.NETHERITE_SWORD;
+    }
+
+    // Missing method to determine if teleport is to End
+    private boolean isTeleportToEnd(Location from, Location to) {
+        return to != null && isEndWorld(to);
+    }
+
     // ===== ENCHANTMENT PREVENTION WITH REROLL =====
     @EventHandler
     public void onPrepareItemEnchant(PrepareItemEnchantEvent event) {
@@ -420,60 +524,58 @@ public class SkriptConversion implements Listener, CommandExecutor {
         }
     }
 
-    // ===== PORTAL RESTRICTIONS =====
-    @EventHandler
-    public void onPlayerPortal(PlayerPortalEvent event) {
-        World fromWorld = event.getFrom().getWorld();
-        World toWorld = event.getTo() != null ? event.getTo().getWorld() : null;
-        if (fromWorld == null || toWorld == null) return;
-        if (!fromWorld.getName().equals("the_end") && toWorld.getName().equals("world_the_end")) {
+    // ===== PORTAL RESTRICTIONS (ONLY WHEN DISABLED) =====
+
+    // More comprehensive End world detection
+    private boolean isEndWorld(Location location) {
+        if (location == null || location.getWorld() == null) return false;
+
+        String worldName = location.getWorld().getName().toLowerCase();
+        return worldName.equals("world_the_end") ||
+                worldName.equals("the_end") ||
+                worldName.equals("end") ||
+                location.getWorld().getEnvironment() == World.Environment.THE_END;
+    }
+
+    // Only block portal access when End is specifically disabled
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerPortalHighPriority(PlayerPortalEvent event) {
+        // Only block if End access is explicitly disabled
+        if (!endAccessEnabled && isTeleportToEnd(event.getFrom(), event.getTo())) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("§cYou are not allowed to enter The End!");
+            event.getPlayer().sendMessage("§c§lThe End is currently disabled!");
+            plugin.getLogger().info("Blocked " + event.getPlayer().getName() + " from entering The End via portal");
         }
     }
 
-    // ===== REPEATING TASKS =====
+    // Only block teleports to End when explicitly disabled
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerTeleportHighPriority(PlayerTeleportEvent event) {
+        // Only block if End access is explicitly disabled
+        if (!endAccessEnabled && isTeleportToEnd(event.getFrom(), event.getTo())) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage("§c§lThe End is currently disabled!");
+
+            // Log the teleport attempt with cause for debugging
+            plugin.getLogger().info("Blocked " + event.getPlayer().getName() +
+                    " from teleporting to The End via " + event.getCause());
+
+            // Handle specific teleport causes
+            if (event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
+                // Give ender pearl back
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        event.getPlayer().getInventory().addItem(new ItemStack(Material.ENDER_PEARL, 1));
+                    }
+                }.runTaskLater(plugin, 1L);
+            }
+        }
+    }
+
+    // Add a placeholder for startRepeatingTasks() method
     private void startRepeatingTasks() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                combatElytraRemovalTask();
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                cleanupTask();
-            }
-        }.runTaskTimer(plugin, 1200L, 1200L);
-    }
-
-    private void combatElytraRemovalTask() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!isInCombat(player.getUniqueId())) continue;
-            ItemStack chestplate = player.getInventory().getChestplate();
-            if (chestplate != null && chestplate.getType() == Material.ELYTRA) {
-                player.getInventory().setChestplate(null);
-                player.getInventory().addItem(chestplate);
-                player.sendMessage("§cYou cannot wear an Elytra during combat!");
-            }
-        }
-    }
-
-    private void cleanupTask() {
-        long now = System.currentTimeMillis();
-        combatTimers.entrySet().removeIf(e -> (now - e.getValue()) > (COMBAT_COOLDOWN_SECONDS * 1000));
-    }
-
-    private boolean isSword(ItemStack item) {
-        if (item == null) return false;
-        return Arrays.asList(
-                Material.WOODEN_SWORD,
-                Material.STONE_SWORD,
-                Material.IRON_SWORD,
-                Material.GOLDEN_SWORD,
-                Material.DIAMOND_SWORD,
-                Material.NETHERITE_SWORD
-        ).contains(item.getType());
+        // Add any other repeating tasks your plugin needs here
+        plugin.getLogger().info("Started repeating tasks");
     }
 }

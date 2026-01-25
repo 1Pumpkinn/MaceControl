@@ -1,5 +1,6 @@
 package net.macecontrol.managers;
 
+import net.macecontrol.utils.MessageUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -23,6 +24,12 @@ import java.util.Objects;
 import java.util.Random;
 
 public class EnchantmentManager implements Listener {
+
+    private final net.macecontrol.Main plugin;
+
+    public EnchantmentManager(net.macecontrol.Main plugin) {
+        this.plugin = plugin;
+    }
 
     private static final List<Enchantment> BANNED_SWORD_ENCHANTS = Arrays.asList(
             Enchantment.FIRE_ASPECT
@@ -82,7 +89,7 @@ public class EnchantmentManager implements Listener {
 
         if (hadBanned) {
             event.getEnchanter().giveExp(event.getExpLevelCost()); // Refund XP
-            event.getEnchanter().sendMessage("§cBanned enchantments were removed! XP refunded.");
+            MessageUtils.sendMessage(event.getEnchanter(), "&cBanned enchantments were removed! XP refunded.");
         }
     }
 
@@ -125,7 +132,7 @@ public class EnchantmentManager implements Listener {
         ItemStack newItem = inventory.getItem(event.getNewSlot());
 
         if (cleanItem(newItem)) {
-            player.sendMessage("§cBanned enchantments removed from your item!");
+            MessageUtils.sendMessage(player, "&cBanned enchantments removed from your item!");
         }
     }
 
@@ -157,17 +164,17 @@ public class EnchantmentManager implements Listener {
 
             // Schedule a check for next tick to ensure item movement is complete
             org.bukkit.Bukkit.getScheduler().runTaskLater(
-                    Objects.requireNonNull(Bukkit.getPluginManager().getPlugin("MaceControl")),
+                    plugin,
                     () -> {
                         if (cleanPlayerInventory(player)) {
-                            player.sendMessage("§cBanned enchantments removed from your items!");
+                            MessageUtils.sendMessage(player, "&cBanned enchantments removed from your items!");
                         }
                     }, 1L
             );
         }
 
         if (cleaned) {
-            player.sendMessage("§cBanned enchantments removed from your item!");
+            MessageUtils.sendMessage(player, "&cBanned enchantments removed from your item!");
         }
     }
 

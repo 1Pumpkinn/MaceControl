@@ -1,52 +1,43 @@
 package net.macecontrol;
 
-import net.macecontrol.managers.PluginDataManager;
 import net.macecontrol.managers.EnchantmentManager;
+import net.macecontrol.managers.PluginDataManager;
+import net.macecontrol.utils.MaceUtils;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Main extends JavaPlugin {
 
     private PluginDataManager dataManager;
-    private net.macecontrol.MaceControl maceControl;
-    private PotionRestrictions potionRestrictions;
-    private CombatManager combatManager;
-    private EnchantmentManager enchantmentManager;
+    private MaceControl maceControl;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
+        MaceUtils.init(this);
         dataManager = new PluginDataManager(this);
-        maceControl = new net.macecontrol.MaceControl(this, dataManager);
-        potionRestrictions = new PotionRestrictions();
-
-        // Initialize new managers
-        combatManager = new CombatManager(this);
-        enchantmentManager = new EnchantmentManager();
-
+        maceControl = new MaceControl(this, dataManager);
 
         // Register event listeners
         getServer().getPluginManager().registerEvents(maceControl, this);
-        getServer().getPluginManager().registerEvents(new net.macecontrol.HeavyCoreInteractions(), this);
-        getServer().getPluginManager().registerEvents(potionRestrictions, this);
-        getServer().getPluginManager().registerEvents(new TippedArrowRestrictions(), this);
-        getServer().getPluginManager().registerEvents(combatManager, this);
-        getServer().getPluginManager().registerEvents(enchantmentManager, this);
-
-        getServer().getPluginManager().registerEvents(new DisableBedBombing(), this);
-
-
+        getServer().getPluginManager().registerEvents(new EnchantmentManager(this), this);
+        getServer().getPluginManager().registerEvents(new HeavyCoreInteractions(this), this);
 
         // Register commands
-        net.macecontrol.MaceCommands maceCommands = new net.macecontrol.MaceCommands(this, dataManager);
+        MaceCommands maceCommands = new MaceCommands(this, dataManager);
         this.getCommand("macefind").setExecutor(maceCommands);
+        this.getCommand("macefind").setTabCompleter(maceCommands);
         this.getCommand("maceclean").setExecutor(maceCommands);
+        this.getCommand("maceclean").setTabCompleter(maceCommands);
         this.getCommand("macereset").setExecutor(maceCommands);
+        this.getCommand("macereset").setTabCompleter(maceCommands);
         this.getCommand("macecount").setExecutor(maceCommands);
+        this.getCommand("macecount").setTabCompleter(maceCommands);
+        this.getCommand("maceset").setExecutor(maceCommands);
+        this.getCommand("maceset").setTabCompleter(maceCommands);
 
-
-        getLogger().info("-- Mace limit: 3 maces ENABLED --");
-        getLogger().info("-- Current maces crafted: " + dataManager.getTotalMacesCrafted() + "/3 --");
+        getLogger().info("-- Mace limit: " + getMaxMaces() + " maces ENABLED --");
+        getLogger().info("-- Current maces crafted: " + dataManager.getTotalMacesCrafted() + "/" + getMaxMaces() + " --");
     }
 
     @Override
@@ -63,15 +54,25 @@ public final class Main extends JavaPlugin {
         return dataManager;
     }
 
-    public net.macecontrol.MaceControl getMaceControl() {
+    public MaceControl getMaceControl() {
         return maceControl;
     }
 
-    public CombatManager getCombatManager() {
-        return combatManager;
+    public int getMaxMaces() {
+        return getConfig().getInt("max-maces", 3);
     }
 
-    public EnchantmentManager getEnchantmentManager() {
-        return enchantmentManager;
+    public void setMaxMaces(int value) {
+        getConfig().set("max-maces", value);
+        saveConfig();
+    }
+
+    public int getEnchantableMaces() {
+        return getConfig().getInt("enchantable-maces", 1);
+    }
+
+    public void setEnchantableMaces(int value) {
+        getConfig().set("enchantable-maces", value);
+        saveConfig();
     }
 }

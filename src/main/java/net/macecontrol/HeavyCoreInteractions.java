@@ -1,22 +1,26 @@
 package net.macecontrol;
 
+import net.macecontrol.utils.MaceUtils;
+import net.macecontrol.utils.MessageUtils;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class HeavyCoreInteractions implements Listener {
+
+    private final Main plugin;
+
+    public HeavyCoreInteractions(Main plugin) {
+        this.plugin = plugin;
+    }
 
     private boolean isRestrictedContainer(InventoryType type) {
         return type == InventoryType.CHEST ||
@@ -34,18 +38,14 @@ public class HeavyCoreInteractions implements Listener {
 
     }
 
-    private boolean isHeavyCore(ItemStack item) {
-        return item != null && item.getType() == Material.HEAVY_CORE;
-    }
-
     // Prevent putting heavy cores in restricted containers
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (isHeavyCore(event.getCurrentItem()) || isHeavyCore(event.getCursor())) {
+        if (MaceUtils.isHeavyCore(event.getCurrentItem()) || MaceUtils.isHeavyCore(event.getCursor())) {
             if (isRestrictedContainer(event.getInventory().getType())) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player) {
-                    ((Player) event.getWhoClicked()).sendMessage("§cYou cannot place Heavy Cores in containers!");
+                    MessageUtils.sendMessage((Player) event.getWhoClicked(), "&cYou cannot place Heavy Cores in containers!");
                 }
             }
         }
@@ -54,7 +54,7 @@ public class HeavyCoreInteractions implements Listener {
     // Prevent dragging heavy cores into containers
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (isHeavyCore(event.getOldCursor()) && isRestrictedContainer(event.getInventory().getType())) {
+        if (MaceUtils.isHeavyCore(event.getOldCursor()) && isRestrictedContainer(event.getInventory().getType())) {
             event.setCancelled(true);
         }
     }
@@ -62,7 +62,7 @@ public class HeavyCoreInteractions implements Listener {
     // Prevent hoppers or droppers moving heavy cores
     @EventHandler
     public void onInventoryMoveItem(InventoryMoveItemEvent event) {
-        if (isHeavyCore(event.getItem())) {
+        if (MaceUtils.isHeavyCore(event.getItem())) {
             event.setCancelled(true);
         }
     }
@@ -70,11 +70,11 @@ public class HeavyCoreInteractions implements Listener {
     // Prevent right-clicking decorated pots with heavy core
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getItem() != null && isHeavyCore(event.getItem())) {
+        if (MaceUtils.isHeavyCore(event.getItem())) {
             Block block = event.getClickedBlock();
             if (block != null && block.getType() == Material.DECORATED_POT && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("§cYou cannot put Heavy Cores in decorated pots!");
+                MessageUtils.sendMessage(event.getPlayer(), "&cYou cannot put Heavy Cores in decorated pots!");
             }
         }
     }
@@ -83,10 +83,10 @@ public class HeavyCoreInteractions implements Listener {
     @EventHandler
     public void onItemFramePlace(PlayerInteractEntityEvent event) {
         if (event.getRightClicked() != null && event.getRightClicked().getType().toString().contains("ITEM_FRAME")) {
-            if (isHeavyCore(event.getPlayer().getInventory().getItemInMainHand()) ||
-                    isHeavyCore(event.getPlayer().getInventory().getItemInOffHand())) {
+            if (MaceUtils.isHeavyCore(event.getPlayer().getInventory().getItemInMainHand()) ||
+                    MaceUtils.isHeavyCore(event.getPlayer().getInventory().getItemInOffHand())) {
                 event.setCancelled(true);
-                event.getPlayer().sendMessage("§cYou cannot put Heavy Cores in item frames!");
+                MessageUtils.sendMessage(event.getPlayer(), "&cYou cannot put Heavy Cores in item frames!");
             }
         }
     }
@@ -94,9 +94,9 @@ public class HeavyCoreInteractions implements Listener {
     // Prevent dropping heavy cores
     @EventHandler
     public void onPlayerDrop(PlayerDropItemEvent event) {
-        if (isHeavyCore(event.getItemDrop().getItemStack())) {
+        if (MaceUtils.isHeavyCore(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("§cYou cannot drop Heavy Cores!");
+            MessageUtils.sendMessage(event.getPlayer(), "&cYou cannot drop Heavy Cores!");
         }
     }
 
@@ -104,11 +104,11 @@ public class HeavyCoreInteractions implements Listener {
     @EventHandler
     public void onInventoryDropClick(InventoryClickEvent event) {
         if ((event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) &&
-                isHeavyCore(event.getCurrentItem())) {
+                MaceUtils.isHeavyCore(event.getCurrentItem())) {
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player) {
                 Player player = (Player) event.getWhoClicked();
-                player.sendMessage("§cYou cannot drop Heavy Cores!");
+                MessageUtils.sendMessage(player, "&cYou cannot drop Heavy Cores!");
                 player.updateInventory();
             }
         }

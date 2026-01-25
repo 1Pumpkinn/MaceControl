@@ -2,10 +2,7 @@ C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\HeavyCoreI
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\MaceCommands.java
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\MaceControl.java
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\Main.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\CombatManager.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\CustomWeaponsManager.java
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\EnchantmentManager.java
 C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\managers\PluginDataManager.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\DisableBedBombing.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\PotionRestrictions.java
-C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\TippedArrowRestrictions.java
+C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\MaceUtils.java
+C:\Users\tyron\IdeaProjects\MaceControl\src\main\java\net\macecontrol\utils\MessageUtils.java

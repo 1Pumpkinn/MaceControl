@@ -1,15 +1,7 @@
-net\macecontrol\utils\DisableBedBombing$1.class
 net\macecontrol\MaceCommands$MaceInfo.class
 net\macecontrol\MaceControl$1.class
 net\macecontrol\Main.class
-net\macecontrol\managers\CombatManager.class
-net\macecontrol\managers\CombatManager$2.class
 net\macecontrol\managers\EnchantmentManager.class
-net\macecontrol\managers\CustomWeaponsManager.class
-net\macecontrol\managers\CombatManager$1.class
-net\macecontrol\utils\TippedArrowRestrictions.class
 net\macecontrol\MaceControl.class
-net\macecontrol\utils\PotionRestrictions.class
 net\macecontrol\managers\PluginDataManager.class
 net\macecontrol\MaceCommands.class
-net\macecontrol\utils\DisableBedBombing.class

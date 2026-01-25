@@ -1,0 +1,26 @@
+# Mace Control Configuration
+# Configure how many maces can exist on your server and how many can be enchanted
+
+# Maximum number of maces that can be crafted on the server
+# Set to 0 to disable all mace crafting
+# Default: 3
+max-maces: 3
+
+# Number of maces that can be enchanted (must be <= max-maces)
+# These are the first N maces crafted (e.g., if set to 2, maces #1 and #2 can be enchanted)
+# Set to 0 to prevent all maces from being enchanted
+# Default: 1
+enchantable-maces: 1
+
+# Examples:
+# - 5 maces total, 3 can be enchanted:
+#   max-maces: 5
+#   enchantable-maces: 3
+#
+# - 1 mace total, cannot be enchanted:
+#   max-maces: 1
+#   enchantable-maces: 0
+#
+# - 10 maces total, all can be enchanted:
+#   max-maces: 10
+#   enchantable-maces: 10

@@ -1,7 +1,7 @@
 package net.macecontrol.managers;
 
+import net.macecontrol.Main;
 import net.macecontrol.utils.MessageUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -13,29 +13,30 @@ import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 
 public class EnchantmentManager implements Listener {
 
-    private final net.macecontrol.Main plugin;
+    private final Main plugin;
+    private static final Random RANDOM = new Random();
 
-    public EnchantmentManager(net.macecontrol.Main plugin) {
+    public EnchantmentManager(Main plugin) {
         this.plugin = plugin;
     }
 
-    private static final List<Enchantment> BANNED_SWORD_ENCHANTS = Arrays.asList(
+    private static final List<Enchantment> BANNED_SWORD_ENCHANTS = Collections.singletonList(
             Enchantment.FIRE_ASPECT
     );
 
-    private static final List<Enchantment> BANNED_BOW_ENCHANTS = Arrays.asList(
+    private static final List<Enchantment> BANNED_BOW_ENCHANTS = Collections.singletonList(
             Enchantment.FLAME
     );
 
@@ -46,7 +47,6 @@ public class EnchantmentManager implements Listener {
         List<Enchantment> bannedEnchants = getBannedEnchantsForItem(item);
         if (bannedEnchants.isEmpty()) return;
 
-        Random random = new Random();
         for (int i = 0; i < event.getOffers().length; i++) {
             if (event.getOffers()[i] == null) continue;
 
@@ -58,8 +58,8 @@ public class EnchantmentManager implements Listener {
                 int newLevel;
 
                 do {
-                    newEnchant = possible[random.nextInt(possible.length)];
-                    newLevel = random.nextInt(newEnchant.getMaxLevel()) + 1;
+                    newEnchant = possible[RANDOM.nextInt(possible.length)];
+                    newLevel = RANDOM.nextInt(newEnchant.getMaxLevel()) + 1;
                     attempts++;
                 } while (bannedEnchants.contains(newEnchant) || !newEnchant.canEnchantItem(item));
 
@@ -89,7 +89,7 @@ public class EnchantmentManager implements Listener {
 
         if (hadBanned) {
             event.getEnchanter().giveExp(event.getExpLevelCost()); // Refund XP
-            MessageUtils.sendMessage(event.getEnchanter(), "&cBanned enchantments were removed! XP refunded.");
+            MessageUtils.sendBannedEnchantmentRefund(event.getEnchanter());
         }
     }
 
@@ -132,7 +132,7 @@ public class EnchantmentManager implements Listener {
         ItemStack newItem = inventory.getItem(event.getNewSlot());
 
         if (cleanItem(newItem)) {
-            MessageUtils.sendMessage(player, "&cBanned enchantments removed from your item!");
+            MessageUtils.sendBannedEnchantmentRemoved(player);
         }
     }
 
@@ -167,14 +167,14 @@ public class EnchantmentManager implements Listener {
                     plugin,
                     () -> {
                         if (cleanPlayerInventory(player)) {
-                            MessageUtils.sendMessage(player, "&cBanned enchantments removed from your items!");
+                            MessageUtils.sendBannedEnchantmentRemoved(player);
                         }
                     }, 1L
             );
         }
 
         if (cleaned) {
-            MessageUtils.sendMessage(player, "&cBanned enchantments removed from your item!");
+            MessageUtils.sendBannedEnchantmentRemoved(player);
         }
     }
 
@@ -225,7 +225,7 @@ public class EnchantmentManager implements Listener {
     }
 
     private List<Enchantment> getBannedEnchantsForItem(ItemStack item) {
-        if (item == null) return Arrays.asList();
+        if (item == null) return Collections.emptyList();
 
         if (isSword(item)) {
             return BANNED_SWORD_ENCHANTS;
@@ -233,7 +233,7 @@ public class EnchantmentManager implements Listener {
             return BANNED_BOW_ENCHANTS;
         }
 
-        return Arrays.asList();
+        return Collections.emptyList();
     }
 
     private boolean isSword(ItemStack item) {

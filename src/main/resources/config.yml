@@ -1,26 +1,42 @@
 # Mace Control Configuration
-# Configure how many maces can exist on your server and how many can be enchanted
-
-# Maximum number of maces that can be crafted on the server
-# Set to 0 to disable all mace crafting
-# Default: 3
 max-maces: 3
-
-# Number of maces that can be enchanted (must be <= max-maces)
-# These are the first N maces crafted (e.g., if set to 2, maces #1 and #2 can be enchanted)
-# Set to 0 to prevent all maces from being enchanted
-# Default: 1
 enchantable-maces: 1
 
-# Examples:
-# - 5 maces total, 3 can be enchanted:
-#   max-maces: 5
-#   enchantable-maces: 3
-#
-# - 1 mace total, cannot be enchanted:
-#   max-maces: 1
-#   enchantable-maces: 0
-#
-# - 10 maces total, all can be enchanted:
-#   max-maces: 10
-#   enchantable-maces: 10
+messages:
+  # --- Important Messages (Editable via /maceset message <type>) ---
+  # Types: crafted, broadcast, limit, join, join-full, enchant-deny, anvil-deny
+
+  crafting:
+    mace-crafted: "&6You crafted Mace #{mace_number} {enchantable_status}! &e({current_count}/{max_maces})" # type: crafted
+    mace-broadcast: "&6Mace #{mace_number} &ewas crafted by &6{player}&e! &7({current_count}/{max_maces}) {enchantable_info}" # type: broadcast
+    limit-reached: # type: limit
+      - "&cAll {max_maces} maces have already been crafted!"
+      - "&7Current maces: {current_count}/{max_maces}"
+    all-crafted-broadcast: "&c&lALL MACES HAVE BEEN CRAFTED!"
+    shift-click-blocked: "&cShift-clicking maces is disabled."
+
+  join:
+    available: # type: join
+      - "&7Maces available: {remaining} remaining ({current_count}/{max_maces} crafted)"
+      - "&7{enchantable_maces} can be enchanted."
+    all-crafted: # type: join-full
+      - "&7All {max_maces} maces have been crafted."
+      - "&7Current count: {current_count}/{max_maces}"
+
+  restrictions:
+    enchant-denied: "&cOnly Maces #1-{enchantable_maces} can be enchanted!" # type: enchant-deny
+    anvil-denied: "&cOnly Maces #1-{enchantable_maces} can be used in anvils!" # type: anvil-deny
+    rename-denied: "&cMaces cannot be renamed!"
+    invalid-removed: "&c{count} invalid mace(s) removed! Only #1-{max_maces} are allowed."
+    heavy-core: "&cCores cannot be placed in containers/pots/frames or dropped!"
+
+  # Enchantment cleanup messages
+  enchantment-cleanup:
+    removed: "&cBanned enchantments removed from your item!"
+    refund: "&cBanned enchantments were removed! XP refunded."
+
+  # Admin related messages
+  admin:
+    no-permission: "&cYou don't have permission!"
+    data-reset: "&6Mace data has been reset! Crafting is now available."
+    count-adjusted: "&6Mace count adjusted to {current_count}/{max_maces}"

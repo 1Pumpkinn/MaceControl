@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class HeavyCoreInteractions implements Listener {
@@ -38,15 +39,72 @@ public class HeavyCoreInteractions implements Listener {
 
     }
 
-    // Prevent putting heavy cores in restricted containers
+    // Prevent interactions with heavy cores in restricted containers
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (MaceUtils.isHeavyCore(event.getCurrentItem()) || MaceUtils.isHeavyCore(event.getCursor())) {
-            if (isRestrictedContainer(event.getInventory().getType())) {
-                event.setCancelled(true);
-                if (event.getWhoClicked() instanceof Player) {
-                    MessageUtils.sendMessage((Player) event.getWhoClicked(), "&cYou cannot place Heavy Cores in containers!");
+        Inventory clickedInventory = event.getClickedInventory();
+        Inventory topInventory = event.getView().getTopInventory();
+        
+        if (clickedInventory == null || topInventory == null) return;
+        if (!isRestrictedContainer(topInventory.getType())) return;
+
+        boolean isHeavyCoreInvolved = false;
+
+        // Check if current item (clicked slot) is a heavy core
+        if (MaceUtils.isHeavyCore(event.getCurrentItem())) {
+            isHeavyCoreInvolved = true;
+        }
+
+        // Check if cursor (held item) is a heavy core
+        if (MaceUtils.isHeavyCore(event.getCursor())) {
+            isHeavyCoreInvolved = true;
+        }
+
+        // Check hotbar swap (number keys)
+        if (event.getClick() == ClickType.NUMBER_KEY) {
+            int hotbarSlot = event.getHotbarButton();
+            if (hotbarSlot >= 0 && hotbarSlot < 9) {
+                ItemStack hotbarItem = event.getWhoClicked().getInventory().getItem(hotbarSlot);
+                if (MaceUtils.isHeavyCore(hotbarItem)) {
+                    isHeavyCoreInvolved = true;
                 }
+            }
+        }
+
+        // Check swap offhand key (F)
+        if (event.getClick() == ClickType.SWAP_OFFHAND) {
+            ItemStack offhandItem = event.getWhoClicked().getInventory().getItemInOffHand();
+            if (MaceUtils.isHeavyCore(offhandItem)) {
+                isHeavyCoreInvolved = true;
+            }
+        }
+
+        // If no heavy core is involved in the transaction, we don't care
+        if (!isHeavyCoreInvolved) return;
+
+        boolean shouldCancel = false;
+
+        // 1. Interaction specifically INSIDE the restricted container
+        // (Putting in, Taking out, Swapping, Hotkeying in/out)
+        if (clickedInventory.equals(topInventory)) {
+            shouldCancel = true;
+        }
+
+        // 2. Shift-clicking FROM player inventory INTO restricted container
+        if (event.isShiftClick() && !clickedInventory.equals(topInventory)) {
+            shouldCancel = true;
+        }
+
+        // 3. Double-clicking (Collect to Cursor)
+        // This is dangerous as it can pull items from the restricted container
+        if (event.getAction() == InventoryAction.COLLECT_TO_CURSOR) {
+            shouldCancel = true;
+        }
+
+        if (shouldCancel) {
+            event.setCancelled(true);
+            if (event.getWhoClicked() instanceof Player) {
+                MessageUtils.sendHeavyCoreRestricted((Player) event.getWhoClicked());
             }
         }
     }
@@ -74,7 +132,7 @@ public class HeavyCoreInteractions implements Listener {
             Block block = event.getClickedBlock();
             if (block != null && block.getType() == Material.DECORATED_POT && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
                 event.setCancelled(true);
-                MessageUtils.sendMessage(event.getPlayer(), "&cYou cannot put Heavy Cores in decorated pots!");
+                MessageUtils.sendHeavyCoreRestricted(event.getPlayer());
             }
         }
     }
@@ -86,7 +144,7 @@ public class HeavyCoreInteractions implements Listener {
             if (MaceUtils.isHeavyCore(event.getPlayer().getInventory().getItemInMainHand()) ||
                     MaceUtils.isHeavyCore(event.getPlayer().getInventory().getItemInOffHand())) {
                 event.setCancelled(true);
-                MessageUtils.sendMessage(event.getPlayer(), "&cYou cannot put Heavy Cores in item frames!");
+                MessageUtils.sendHeavyCoreRestricted(event.getPlayer());
             }
         }
     }
@@ -96,7 +154,7 @@ public class HeavyCoreInteractions implements Listener {
     public void onPlayerDrop(PlayerDropItemEvent event) {
         if (MaceUtils.isHeavyCore(event.getItemDrop().getItemStack())) {
             event.setCancelled(true);
-            MessageUtils.sendMessage(event.getPlayer(), "&cYou cannot drop Heavy Cores!");
+            MessageUtils.sendHeavyCoreRestricted(event.getPlayer());
         }
     }
 
@@ -108,7 +166,7 @@ public class HeavyCoreInteractions implements Listener {
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player) {
                 Player player = (Player) event.getWhoClicked();
-                MessageUtils.sendMessage(player, "&cYou cannot drop Heavy Cores!");
+                MessageUtils.sendHeavyCoreRestricted(player);
                 player.updateInventory();
             }
         }

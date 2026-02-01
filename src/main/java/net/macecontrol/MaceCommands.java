@@ -3,7 +3,11 @@ package net.macecontrol;
 import net.macecontrol.managers.PluginDataManager;
 import net.macecontrol.utils.MaceUtils;
 import net.macecontrol.utils.MessageUtils;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.ShulkerBox;
@@ -18,12 +22,32 @@ import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class MaceCommands implements CommandExecutor, TabCompleter {
 
     private final Main plugin;
     private final PluginDataManager dataManager;
+
+    private static final Map<String, String> EDITABLE_MESSAGES = new LinkedHashMap<>();
+
+    static {
+        EDITABLE_MESSAGES.put("crafted", "crafting.mace-crafted");
+        EDITABLE_MESSAGES.put("broadcast", "crafting.mace-broadcast");
+        EDITABLE_MESSAGES.put("limit", "crafting.limit-reached");
+        EDITABLE_MESSAGES.put("join", "join.available");
+        EDITABLE_MESSAGES.put("join-full", "join.all-crafted");
+        EDITABLE_MESSAGES.put("enchant-deny", "restrictions.enchant-denied");
+        EDITABLE_MESSAGES.put("anvil-deny", "restrictions.anvil-denied");
+    }
 
     public MaceCommands(Main plugin, PluginDataManager dataManager) {
         this.plugin = plugin;
@@ -34,8 +58,37 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (command.getName().equalsIgnoreCase("maceset")) {
             if (args.length == 1) {
-                List<String> options = Arrays.asList("max", "enchantable");
-                return filterTab(options, args[0]);
+                return filterTab(Arrays.asList("max", "enchantable", "message"), args[0]);
+            } else if (args.length == 2) {
+                if (args[0].equalsIgnoreCase("message")) {
+                    return filterTab(new ArrayList<>(EDITABLE_MESSAGES.keySet()), args[1]);
+                } else if (args[0].equalsIgnoreCase("max")) {
+                    int defaultMax = plugin.getConfig().getDefaults() != null ? 
+                            plugin.getConfig().getDefaults().getInt("max-maces", 3) : 3;
+                    return Collections.singletonList(String.valueOf(defaultMax));
+                } else if (args[0].equalsIgnoreCase("enchantable")) {
+                    int defaultEnchantable = plugin.getConfig().getDefaults() != null ? 
+                            plugin.getConfig().getDefaults().getInt("enchantable-maces", 1) : 1;
+                    return Collections.singletonList(String.valueOf(defaultEnchantable));
+                }
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("message")) {
+                String type = args[1].toLowerCase();
+                if (EDITABLE_MESSAGES.containsKey(type)) {
+                    String configPath = "messages." + EDITABLE_MESSAGES.get(type);
+                    // Pull from defaults instead of current config
+                    Object defaultValue = plugin.getConfig().getDefaults() != null ? 
+                            plugin.getConfig().getDefaults().get(configPath) : null;
+                    
+                    if (defaultValue != null) {
+                        String messageSuggestion;
+                        if (defaultValue instanceof List) {
+                            messageSuggestion = String.join(",", (List<String>) defaultValue);
+                        } else {
+                            messageSuggestion = defaultValue.toString();
+                        }
+                        return filterTab(Collections.singletonList(messageSuggestion), args[2]);
+                    }
+                }
             }
         } else if (command.getName().equalsIgnoreCase("macecount")) {
             if (args.length == 1) {
@@ -83,15 +136,50 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
 
         if (args.length < 2) {
             MessageUtils.sendMessages(sender,
-                "&6Mace Configuration Commands:",
-                "&e/maceset max <number> &7- Set maximum craftable maces",
-                "&e/maceset enchantable <number> &7- Set number of enchantable maces",
-                "&7Current Settings: Max: " + plugin.getMaxMaces() + ", Enchantable: " + plugin.getEnchantableMaces()
+                    "&6Mace Configuration Commands:",
+                    "&e/maceset max <number> &7- Set maximum craftable maces",
+                    "&e/maceset enchantable <number> &7- Set number of enchantable maces",
+                    "&e/maceset message <path> <new message> &7- Change a plugin message",
+                    "&7Current Settings: Max: " + plugin.getMaxMaces() + ", Enchantable: " + plugin.getEnchantableMaces()
             );
             return true;
         }
 
         String type = args[0].toLowerCase();
+
+        if (type.equals("message")) {
+            if (args.length < 3) {
+                MessageUtils.sendMessage(sender, "&cUsage: /maceset message <type> <new message>");
+                MessageUtils.sendMessage(sender, "&7Types: &e" + String.join(", ", EDITABLE_MESSAGES.keySet()));
+                return true;
+            }
+
+            String alias = args[1].toLowerCase();
+            if (!EDITABLE_MESSAGES.containsKey(alias)) {
+                MessageUtils.sendMessage(sender, "&cInvalid message type! Available: &e" + String.join(", ", EDITABLE_MESSAGES.keySet()));
+                return true;
+            }
+
+            String configPath = "messages." + EDITABLE_MESSAGES.get(alias);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 2; i < args.length; i++) {
+                sb.append(args[i]).append(i == args.length - 1 ? "" : " ");
+            }
+            String newMessage = sb.toString();
+
+            // Handle potential list input (comma separated)
+            if (newMessage.contains(",")) {
+                List<String> list = Arrays.asList(newMessage.split(","));
+                plugin.getConfig().set(configPath, list);
+            } else {
+                plugin.getConfig().set(configPath, newMessage);
+            }
+
+            plugin.saveConfig();
+            MessageUtils.sendMessage(sender, "&aMessage '&6" + alias + "&a' updated successfully!");
+            return true;
+        }
+
         try {
             int value = Integer.parseInt(args[1]);
             if (value < 0) {
@@ -131,8 +219,8 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
         int enchantableMaces = plugin.getEnchantableMaces();
 
         MessageUtils.sendMessages(sender,
-            "&6Scanning for maces on the server...",
-            "&7This may take a moment as we scan all loaded chunks..."
+                "&6Scanning for maces on the server...",
+                "&7This may take a moment as we scan all loaded chunks..."
         );
 
         Map<String, MaceInfo> playerMaceDetails = new HashMap<>();
@@ -169,12 +257,12 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
 
         String separator = "&6" + "=".repeat(50);
         MessageUtils.sendMessages(sender,
-            separator,
-            "&6Mace Status Report:",
-            separator,
-            "&eTotal valid maces found: &6" + totalValidMaces + "&e/&6" + maxMaces,
-            "&eTotal maces crafted: &6" + dataManager.getTotalMacesCrafted(),
-            "&eEnchantable maces: &6" + enchantableMaces
+                separator,
+                "&6Mace Status Report:",
+                separator,
+                "&eTotal valid maces found: &6" + totalValidMaces + "&e/&6" + maxMaces,
+                "&eTotal maces crafted: &6" + dataManager.getTotalMacesCrafted(),
+                "&eEnchantable maces: &6" + enchantableMaces
         );
 
         if (playersWithMaces.isEmpty() && worldInfo.totalValidMaces == 0) {
@@ -195,10 +283,10 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
 
             if (worldInfo.totalValidMaces > 0) {
                 MessageUtils.sendMessages(sender,
-                    "&6World containers (chests/shulkers):",
-                    "&e• Found in loaded chunks: &6" + worldInfo.totalValidMaces + " maces",
-                    "  &7Details: " + worldInfo.getDetailsString(enchantableMaces),
-                    "  &7Note: Only loaded chunks were scanned"
+                        "&6World containers (chests/shulkers):",
+                        "&e• Found in loaded chunks: &6" + worldInfo.totalValidMaces + " maces",
+                        "  &7Details: " + worldInfo.getDetailsString(enchantableMaces),
+                        "  &7Note: Only loaded chunks were scanned"
                 );
             }
         }
@@ -223,26 +311,26 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
             int enchantableMaces = plugin.getEnchantableMaces();
 
             MessageUtils.sendMessages(sender,
-                "&aClean completed!",
-                "&a• Invalid maces have been removed from all online players",
-                "&a• Mace data has been reset - players can now craft maces again!",
-                "&7Remember: Only " + maxMaces + " maces total, " + enchantableMaces + " can be enchanted."
+                    "&aClean completed!",
+                    "&a• Invalid maces have been removed from all online players",
+                    "&a• Mace data has been reset - players can now craft maces again!",
+                    "&7Remember: Only " + maxMaces + " maces total, " + enchantableMaces + " can be enchanted."
             );
 
-            MessageUtils.broadcastMessage("&6Server mace data has been reset by an admin!");
-            MessageUtils.broadcastMessage("&eMace crafting is now available again. Invalid maces have been removed.");
+            MessageUtils.broadcastDataReset();
+            MessageUtils.sendMessage(sender, "&eMace crafting is now available again. Invalid maces have been removed.");
 
             return true;
         } else {
             MessageUtils.sendMessages(sender,
-                "&e&lMACECLEAN - Enhanced Version",
-                "&7This command will:",
-                "&c• Remove ALL invalid maces from online players",
-                "&c• Reset mace crafting data (allows new maces to be crafted)",
-                "&c• Clear the macedata.yml file",
-                "",
-                "&eThis is a DESTRUCTIVE operation!",
-                "&cType '&e/maceclean confirm&c' to proceed."
+                    "&e&lMACECLEAN - Enhanced Version",
+                    "&7This command will:",
+                    "&c• Remove ALL invalid maces from online players",
+                    "&c• Reset mace crafting data (allows new maces to be crafted)",
+                    "&c• Clear the macedata.yml file",
+                    "",
+                    "&eThis is a DESTRUCTIVE operation!",
+                    "&cType '&e/maceclean confirm&c' to proceed."
             );
             return true;
         }
@@ -261,14 +349,14 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
             int enchantableMaces = plugin.getEnchantableMaces();
 
             MessageUtils.sendMessages(sender,
-                "&aAll mace data has been reset! Players can now craft maces again.",
-                "&7Remember: Only " + maxMaces + " maces total, " + enchantableMaces + " can be enchanted."
+                    "&aAll mace data has been reset! Players can now craft maces again.",
+                    "&7Remember: Only " + maxMaces + " maces total, " + enchantableMaces + " can be enchanted."
             );
-            MessageUtils.broadcastMessage("&6Server mace data has been reset by an admin! Mace crafting is now available again.");
+            MessageUtils.broadcastDataReset();
         } else {
             MessageUtils.sendMessages(sender,
-                "&cThis will reset ALL mace data and allow new maces to be crafted!",
-                "&cType '&e/macereset confirm&c' to proceed."
+                    "&cThis will reset ALL mace data and allow new maces to be crafted!",
+                    "&cType '&e/macereset confirm&c' to proceed."
             );
         }
         return true;
@@ -293,7 +381,7 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
                 if (newCount >= 0 && newCount <= maxMaces) {
                     dataManager.setTotalMacesCrafted(newCount);
                     MessageUtils.sendMessage(sender, "&aMace count set to: &6" + newCount + "/" + maxMaces);
-                    MessageUtils.broadcastMessage("&6Server mace count has been adjusted by an admin to " + newCount + "/" + maxMaces);
+                    MessageUtils.broadcastCountAdjusted(newCount, maxMaces);
                 } else {
                     MessageUtils.sendMessage(sender, "&cInvalid count! Must be between 0 and " + maxMaces + ".");
                 }

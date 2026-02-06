@@ -64,6 +64,10 @@ public final class Main extends JavaPlugin {
         return getConfig().getInt("max-maces", 3);
     }
 
+    public boolean isMaceBanned() {
+        return getMaxMaces() <= 0;
+    }
+
     public void setMaxMaces(int value) {
         getConfig().set("max-maces", value);
         saveConfig();

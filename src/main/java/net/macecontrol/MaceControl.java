@@ -4,7 +4,6 @@ import net.macecontrol.managers.PluginDataManager;
 import net.macecontrol.utils.MaceUtils;
 import net.macecontrol.utils.MessageUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -35,6 +34,20 @@ public class MaceControl implements Listener {
         this.dataManager = dataManager;
     }
 
+    // Helper to check if crafting is blocked
+    private boolean isCraftingBlocked(int currentCount, int maxMaces) {
+        return plugin.isMaceBanned() || currentCount >= maxMaces;
+    }
+
+    // Helper to send appropriate block message
+    private void sendBlockMessage(Player player, int currentCount, int maxMaces, int enchantableMaces) {
+        if (plugin.isMaceBanned()) {
+            MessageUtils.sendMessage(player, "&cMace crafting is currently disabled.");
+        } else {
+            MessageUtils.sendLimitReached(player, maxMaces, enchantableMaces, currentCount);
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPrepareCraft(PrepareItemCraftEvent event) {
         ItemStack result = event.getInventory().getResult();
@@ -46,12 +59,9 @@ public class MaceControl implements Listener {
         int enchantableMaces = plugin.getEnchantableMaces();
         int currentMaceCount = dataManager.getTotalMacesCrafted();
 
-        // If we've reached the limit, block crafting completely
-        if (currentMaceCount >= maxMaces) {
+        // If we've reached the limit or explicitly banned, block crafting completely
+        if (isCraftingBlocked(currentMaceCount, maxMaces)) {
             event.getInventory().setResult(null);
-            if (event.getView().getPlayer() instanceof Player) {
-                MessageUtils.sendLimitReached((Player) event.getView().getPlayer(), maxMaces, enchantableMaces, currentMaceCount);
-            }
             return;
         }
 
@@ -88,7 +98,9 @@ public class MaceControl implements Listener {
         if (event.isShiftClick()) {
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player) {
-                MessageUtils.sendShiftClickDisabled((Player) event.getWhoClicked());
+                Player player = (Player) event.getWhoClicked();
+                player.updateInventory();
+                MessageUtils.sendShiftClickDisabled(player);
             }
             return;
         }
@@ -97,11 +109,13 @@ public class MaceControl implements Listener {
         int enchantableMaces = plugin.getEnchantableMaces();
         int currentCount = dataManager.getTotalMacesCrafted();
 
-        // Double-check the limit before allowing the craft
-        if (currentCount >= maxMaces) {
+        // Check if crafting is blocked
+        if (isCraftingBlocked(currentCount, maxMaces)) {
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player) {
-                MessageUtils.sendLimitReached((Player) event.getWhoClicked(), maxMaces, enchantableMaces, currentCount);
+                Player player = (Player) event.getWhoClicked();
+                player.updateInventory();
+                sendBlockMessage(player, currentCount, maxMaces, enchantableMaces);
             }
             return;
         }
@@ -110,11 +124,13 @@ public class MaceControl implements Listener {
         Integer maceNumber = MaceUtils.getMaceNumber(result);
         if (maceNumber != null) {
             // Final check before incrementing - prevent race conditions
-            if (dataManager.getTotalMacesCrafted() >= maxMaces) {
+            if (isCraftingBlocked(dataManager.getTotalMacesCrafted(), maxMaces)) {
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player) {
                     Player player = (Player) event.getWhoClicked();
-                    MessageUtils.sendMessage(player, "&cSomeone else just crafted the final mace! Crafting cancelled.");
+                    player.updateInventory();
+                    // Just send a generic error for race condition to keep it simple, or re-use block message
+                    sendBlockMessage(player, dataManager.getTotalMacesCrafted(), maxMaces, enchantableMaces);
                 }
                 return;
             }
@@ -148,23 +164,19 @@ public class MaceControl implements Listener {
 
     @EventHandler
     public void onPrepareItemEnchant(PrepareItemEnchantEvent event) {
-        ItemStack item = event.getItem();
-        int enchantableLimit = plugin.getEnchantableMaces();
-
-        if (MaceUtils.isMace(item) && !MaceUtils.isEnchantable(item, enchantableLimit)) {
-            event.setCancelled(true);
-            MessageUtils.sendEnchantRestricted(event.getEnchanter(), enchantableLimit);
-        }
+        handleEnchantEvent(event.getItem(), event.getEnchanter(), event);
     }
 
     @EventHandler
     public void onEnchant(EnchantItemEvent event) {
-        ItemStack item = event.getItem();
-        int enchantableLimit = plugin.getEnchantableMaces();
+        handleEnchantEvent(event.getItem(), event.getEnchanter(), event);
+    }
 
+    private void handleEnchantEvent(ItemStack item, Player enchanter, org.bukkit.event.Cancellable event) {
+        int enchantableLimit = plugin.getEnchantableMaces();
         if (MaceUtils.isMace(item) && !MaceUtils.isEnchantable(item, enchantableLimit)) {
             event.setCancelled(true);
-            MessageUtils.sendEnchantRestricted(event.getEnchanter(), enchantableLimit);
+            MessageUtils.sendEnchantRestricted(enchanter, enchantableLimit);
         }
     }
 

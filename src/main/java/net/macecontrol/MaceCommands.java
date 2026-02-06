@@ -57,39 +57,7 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (command.getName().equalsIgnoreCase("maceset")) {
-            if (args.length == 1) {
-                return filterTab(Arrays.asList("max", "enchantable", "message"), args[0]);
-            } else if (args.length == 2) {
-                if (args[0].equalsIgnoreCase("message")) {
-                    return filterTab(new ArrayList<>(EDITABLE_MESSAGES.keySet()), args[1]);
-                } else if (args[0].equalsIgnoreCase("max")) {
-                    int defaultMax = plugin.getConfig().getDefaults() != null ? 
-                            plugin.getConfig().getDefaults().getInt("max-maces", 3) : 3;
-                    return Collections.singletonList(String.valueOf(defaultMax));
-                } else if (args[0].equalsIgnoreCase("enchantable")) {
-                    int defaultEnchantable = plugin.getConfig().getDefaults() != null ? 
-                            plugin.getConfig().getDefaults().getInt("enchantable-maces", 1) : 1;
-                    return Collections.singletonList(String.valueOf(defaultEnchantable));
-                }
-            } else if (args.length == 3 && args[0].equalsIgnoreCase("message")) {
-                String type = args[1].toLowerCase();
-                if (EDITABLE_MESSAGES.containsKey(type)) {
-                    String configPath = "messages." + EDITABLE_MESSAGES.get(type);
-                    // Pull from defaults instead of current config
-                    Object defaultValue = plugin.getConfig().getDefaults() != null ? 
-                            plugin.getConfig().getDefaults().get(configPath) : null;
-                    
-                    if (defaultValue != null) {
-                        String messageSuggestion;
-                        if (defaultValue instanceof List) {
-                            messageSuggestion = String.join(",", (List<String>) defaultValue);
-                        } else {
-                            messageSuggestion = defaultValue.toString();
-                        }
-                        return filterTab(Collections.singletonList(messageSuggestion), args[2]);
-                    }
-                }
-            }
+            return handleMacesetTab(args);
         } else if (command.getName().equalsIgnoreCase("macecount")) {
             if (args.length == 1) {
                 return filterTab(Collections.singletonList("set"), args[0]);
@@ -97,6 +65,43 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
         } else if (command.getName().equalsIgnoreCase("maceclean") || command.getName().equalsIgnoreCase("macereset")) {
             if (args.length == 1) {
                 return filterTab(Collections.singletonList("confirm"), args[0]);
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    private List<String> handleMacesetTab(String[] args) {
+        if (args.length == 1) {
+            return filterTab(Arrays.asList("max", "enchantable", "message"), args[0]);
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("message")) {
+                return filterTab(new ArrayList<>(EDITABLE_MESSAGES.keySet()), args[1]);
+            } else if (args[0].equalsIgnoreCase("max")) {
+                int defaultMax = plugin.getConfig().getDefaults() != null ?
+                        plugin.getConfig().getDefaults().getInt("max-maces", 3) : 3;
+                return Collections.singletonList(String.valueOf(defaultMax));
+            } else if (args[0].equalsIgnoreCase("enchantable")) {
+                int defaultEnchantable = plugin.getConfig().getDefaults() != null ?
+                        plugin.getConfig().getDefaults().getInt("enchantable-maces", 1) : 1;
+                return Collections.singletonList(String.valueOf(defaultEnchantable));
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("message")) {
+            String type = args[1].toLowerCase();
+            if (EDITABLE_MESSAGES.containsKey(type)) {
+                String configPath = "messages." + EDITABLE_MESSAGES.get(type);
+                // Pull from defaults instead of current config
+                Object defaultValue = plugin.getConfig().getDefaults() != null ?
+                        plugin.getConfig().getDefaults().get(configPath) : null;
+
+                if (defaultValue != null) {
+                    String messageSuggestion;
+                    if (defaultValue instanceof List) {
+                        messageSuggestion = String.join(",", (List<String>) defaultValue);
+                    } else {
+                        messageSuggestion = defaultValue.toString();
+                    }
+                    return filterTab(Collections.singletonList(messageSuggestion), args[2]);
+                }
             }
         }
         return Collections.emptyList();
@@ -472,23 +477,7 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
     }
 
     private boolean isShulkerBox(Material material) {
-        return material == Material.SHULKER_BOX ||
-                material == Material.WHITE_SHULKER_BOX ||
-                material == Material.ORANGE_SHULKER_BOX ||
-                material == Material.MAGENTA_SHULKER_BOX ||
-                material == Material.LIGHT_BLUE_SHULKER_BOX ||
-                material == Material.YELLOW_SHULKER_BOX ||
-                material == Material.LIME_SHULKER_BOX ||
-                material == Material.PINK_SHULKER_BOX ||
-                material == Material.GRAY_SHULKER_BOX ||
-                material == Material.LIGHT_GRAY_SHULKER_BOX ||
-                material == Material.CYAN_SHULKER_BOX ||
-                material == Material.PURPLE_SHULKER_BOX ||
-                material == Material.BLUE_SHULKER_BOX ||
-                material == Material.BROWN_SHULKER_BOX ||
-                material == Material.GREEN_SHULKER_BOX ||
-                material == Material.RED_SHULKER_BOX ||
-                material == Material.BLACK_SHULKER_BOX;
+        return material.name().endsWith("SHULKER_BOX");
     }
 
     private static class MaceInfo {

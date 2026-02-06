@@ -104,8 +104,18 @@ public class HeavyCoreInteractions implements Listener {
         if (shouldCancel) {
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player) {
-                MessageUtils.sendHeavyCoreRestricted((Player) event.getWhoClicked());
+                Player player = (Player) event.getWhoClicked();
+                MessageUtils.sendHeavyCoreRestricted(player);
+                player.updateInventory();
             }
+        }
+    }
+
+    // Prevent Hoppers (and hopper minecarts) from picking up dropped Heavy Cores
+    @EventHandler
+    public void onInventoryPickupItem(InventoryPickupItemEvent event) {
+        if (MaceUtils.isHeavyCore(event.getItem().getItemStack())) {
+            event.setCancelled(true);
         }
     }
 
@@ -145,29 +155,6 @@ public class HeavyCoreInteractions implements Listener {
                     MaceUtils.isHeavyCore(event.getPlayer().getInventory().getItemInOffHand())) {
                 event.setCancelled(true);
                 MessageUtils.sendHeavyCoreRestricted(event.getPlayer());
-            }
-        }
-    }
-
-    // Prevent dropping heavy cores
-    @EventHandler
-    public void onPlayerDrop(PlayerDropItemEvent event) {
-        if (MaceUtils.isHeavyCore(event.getItemDrop().getItemStack())) {
-            event.setCancelled(true);
-            MessageUtils.sendHeavyCoreRestricted(event.getPlayer());
-        }
-    }
-
-    // Prevent Q / Ctrl+Q inside inventories
-    @EventHandler
-    public void onInventoryDropClick(InventoryClickEvent event) {
-        if ((event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) &&
-                MaceUtils.isHeavyCore(event.getCurrentItem())) {
-            event.setCancelled(true);
-            if (event.getWhoClicked() instanceof Player) {
-                Player player = (Player) event.getWhoClicked();
-                MessageUtils.sendHeavyCoreRestricted(player);
-                player.updateInventory();
             }
         }
     }

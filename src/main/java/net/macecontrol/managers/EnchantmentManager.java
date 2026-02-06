@@ -32,13 +32,6 @@ public class EnchantmentManager implements Listener {
         this.plugin = plugin;
     }
 
-    private static final List<Enchantment> BANNED_SWORD_ENCHANTS = Collections.singletonList(
-            Enchantment.FIRE_ASPECT
-    );
-
-    private static final List<Enchantment> BANNED_BOW_ENCHANTS = Collections.singletonList(
-            Enchantment.FLAME
-    );
 
     // Prevent banned enchantments from appearing in enchanting table
     @EventHandler
@@ -227,11 +220,6 @@ public class EnchantmentManager implements Listener {
     private List<Enchantment> getBannedEnchantsForItem(ItemStack item) {
         if (item == null) return Collections.emptyList();
 
-        if (isSword(item)) {
-            return BANNED_SWORD_ENCHANTS;
-        } else if (isBow(item)) {
-            return BANNED_BOW_ENCHANTS;
-        }
 
         return Collections.emptyList();
     }
@@ -251,9 +239,5 @@ public class EnchantmentManager implements Listener {
     private boolean isBow(ItemStack item) {
         if (item == null) return false;
         return item.getType() == Material.BOW;
-    }
-
-    public static boolean isBannedEnchantment(Enchantment enchantment) {
-        return BANNED_SWORD_ENCHANTS.contains(enchantment) || BANNED_BOW_ENCHANTS.contains(enchantment);
     }
 }

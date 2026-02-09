@@ -91,74 +91,41 @@ public class MaceControl implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCraftItem(CraftItemEvent event) {
         ItemStack result = event.getCurrentItem();
-
         if (!MaceUtils.isMace(result)) return;
 
-        // Prevent shift-clicking maces to ensure limit is strictly enforced
-        if (event.isShiftClick()) {
-            event.setCancelled(true);
-            if (event.getWhoClicked() instanceof Player) {
-                Player player = (Player) event.getWhoClicked();
-                player.updateInventory();
-                MessageUtils.sendShiftClickDisabled(player);
-            }
-            return;
-        }
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) event.getWhoClicked();
 
         int maxMaces = plugin.getMaxMaces();
         int enchantableMaces = plugin.getEnchantableMaces();
-        int currentCount = dataManager.getTotalMacesCrafted();
 
-        // Check if crafting is blocked
-        if (isCraftingBlocked(currentCount, maxMaces)) {
+        if (isCraftingBlocked(dataManager.getTotalMacesCrafted(), maxMaces)) {
             event.setCancelled(true);
-            if (event.getWhoClicked() instanceof Player) {
-                Player player = (Player) event.getWhoClicked();
-                player.updateInventory();
-                sendBlockMessage(player, currentCount, maxMaces, enchantableMaces);
-            }
+            sendBlockMessage(player, dataManager.getTotalMacesCrafted(), maxMaces, enchantableMaces);
+            player.updateInventory();
             return;
         }
 
-        // Check if this mace has our number tag
+        if (event.isShiftClick()) {
+            event.setCancelled(true);
+            MessageUtils.sendMessage(player, "&cShift-clicking to craft maces is disabled.");
+            player.updateInventory();
+            return;
+        }
+
         Integer maceNumber = MaceUtils.getMaceNumber(result);
         if (maceNumber != null) {
-            // Final check before incrementing - prevent race conditions
-            if (isCraftingBlocked(dataManager.getTotalMacesCrafted(), maxMaces)) {
-                event.setCancelled(true);
-                if (event.getWhoClicked() instanceof Player) {
-                    Player player = (Player) event.getWhoClicked();
-                    player.updateInventory();
-                    // Just send a generic error for race condition to keep it simple, or re-use block message
-                    sendBlockMessage(player, dataManager.getTotalMacesCrafted(), maxMaces, enchantableMaces);
-                }
-                return;
-            }
-
-            // Increment the counter when a numbered mace is actually crafted
             dataManager.incrementTotalMaces();
-
-            Player player = (Player) event.getWhoClicked();
-
-            // Send personal message
             MessageUtils.sendMaceCrafted(player, maceNumber, maxMaces, enchantableMaces, dataManager.getTotalMacesCrafted(), player.getName());
-
-            // Broadcast to server
             MessageUtils.broadcastMaceCrafted(maceNumber, maxMaces, enchantableMaces, dataManager.getTotalMacesCrafted(), player.getName());
-
             plugin.getLogger().info("Mace #" + maceNumber + " crafted by " + player.getName() + ". Total maces now: " + dataManager.getTotalMacesCrafted());
 
-            // If this was the last mace, broadcast a special message
             if (dataManager.getTotalMacesCrafted() >= maxMaces) {
                 MessageUtils.broadcastAllMacesCrafted();
             }
         } else {
-            // This shouldn't happen with our prepare logic, but just in case
             event.setCancelled(true);
-            if (event.getWhoClicked() instanceof Player) {
-                Player player = (Player) event.getWhoClicked();
-                MessageUtils.sendMessage(player, "&cError: Invalid mace detected! Crafting cancelled.");
-            }
+            MessageUtils.sendMessage(player, "&cError: Invalid mace detected! Crafting cancelled.");
         }
     }
 
@@ -180,36 +147,31 @@ public class MaceControl implements Listener {
         }
     }
 
-    // Prevent non-enchantable maces from being used in anvils and block renaming
     @EventHandler
     public void onPrepareAnvil(PrepareAnvilEvent event) {
         ItemStack firstItem = event.getInventory().getItem(0);
         ItemStack secondItem = event.getInventory().getItem(1);
         int enchantableLimit = plugin.getEnchantableMaces();
 
-        // 1. Block any interaction with non-enchantable maces
-        if (isRestrictedMace(firstItem, enchantableLimit) || isRestrictedMace(secondItem, enchantableLimit)) {
-            event.setResult(null);
-
-            if (event.getViewers().size() > 0 && event.getViewers().get(0) instanceof Player) {
-                Player player = (Player) event.getViewers().get(0);
-                MessageUtils.sendAnvilRestricted(player, enchantableLimit);
-            }
-            return;
-        }
-
-        // 2. Prevent renaming of ANY mace (enchantable or not)
-        if (MaceUtils.isMace(firstItem)) {
-            String renameText = event.getInventory().getRenameText();
-            if (renameText != null && !renameText.isEmpty()) {
-                event.setResult(null); // Block the result if they try to rename it
+        // If the first item is a restricted mace, check what the player is trying to do
+        if (isRestrictedMace(firstItem, enchantableLimit)) {
+            // Check if the second item is an enchantment book
+            if (secondItem != null && secondItem.getType() == org.bukkit.Material.ENCHANTED_BOOK) {
+                // Block the enchanting attempt
+                event.setResult(null);
 
                 if (event.getViewers().size() > 0 && event.getViewers().get(0) instanceof Player) {
                     Player player = (Player) event.getViewers().get(0);
-                    MessageUtils.sendRenameRestricted(player);
+                    MessageUtils.sendAnvilRestricted(player, enchantableLimit);
                 }
+                return;
             }
+            // If it's not an enchantment book, it's either a repair or a rename, which is allowed.
+            // The commented-out code below is what was previously blocking renaming.
         }
+
+        // The old renaming block is now removed, allowing renaming for all maces.
+        // The logic above handles the enchanting restriction.
     }
 
     private boolean isRestrictedMace(ItemStack item, int limit) {
@@ -251,27 +213,43 @@ public class MaceControl implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
 
         Player player = (Player) event.getWhoClicked();
+
+        // Prevent crafting a mace if the player has an item on their cursor
+        if (event.getSlotType() == InventoryType.SlotType.RESULT &&
+            (event.getInventory().getType() == InventoryType.CRAFTING || event.getInventory().getType() == InventoryType.WORKBENCH)) {
+            ItemStack result = event.getCurrentItem();
+            if (result != null && MaceUtils.isMace(result)) {
+                ItemStack cursor = event.getCursor();
+                if (cursor != null && cursor.getType() != org.bukkit.Material.AIR) {
+                    event.setCancelled(true);
+                    MessageUtils.sendMessage(player, "&cPlease empty your cursor before crafting this item.");
+                    player.updateInventory(); // Force a client-side update
+                    return; // Stop processing this event further
+                }
+            }
+        }
+
         int enchantableLimit = plugin.getEnchantableMaces();
         ItemStack clickedItem = event.getCurrentItem();
         ItemStack cursorItem = event.getCursor();
         InventoryType invType = event.getInventory().getType();
 
         // 1. Block putting non-enchantable maces in Anvils
-        if (invType == InventoryType.ANVIL) {
-            // Regular click into slots
-            if ((event.getSlot() == 0 || event.getSlot() == 1) &&
-                    (isRestrictedMace(clickedItem, enchantableLimit) || isRestrictedMace(cursorItem, enchantableLimit))) {
-                event.setCancelled(true);
-                MessageUtils.sendAnvilRestricted(player, enchantableLimit);
-                return;
-            }
-            // Shift click from inventory
-            if (event.isShiftClick() && isRestrictedMace(clickedItem, enchantableLimit)) {
-                event.setCancelled(true);
-                MessageUtils.sendAnvilRestricted(player, enchantableLimit);
-                return;
-            }
-        }
+        // if (invType == InventoryType.ANVIL) {
+        //     // Regular click into slots
+        //     if ((event.getSlot() == 0 || event.getSlot() == 1) &&
+        //             (isRestrictedMace(clickedItem, enchantableLimit) || isRestrictedMace(cursorItem, enchantableLimit))) {
+        //         event.setCancelled(true);
+        //         MessageUtils.sendAnvilRestricted(player, enchantableLimit);
+        //         return;
+        //     }
+        //     // Shift click from inventory
+        //     if (event.isShiftClick() && isRestrictedMace(clickedItem, enchantableLimit)) {
+        //         event.setCancelled(true);
+        //         MessageUtils.sendAnvilRestricted(player, enchantableLimit);
+        //         return;
+        //     }
+        // }
 
         // 2. Block putting non-enchantable maces in Enchanting Tables
         if (invType == InventoryType.ENCHANTING) {

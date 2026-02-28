@@ -4,10 +4,12 @@ import net.macecontrol.managers.PluginDataManager;
 import net.macecontrol.utils.MaceUtils;
 import net.macecontrol.utils.MessageUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
@@ -22,12 +24,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class MaceControl implements Listener {
 
     private final Main plugin;
     private final PluginDataManager dataManager;
+    private final Map<UUID, Long> maceCooldowns = new HashMap<>();
 
     public MaceControl(Main plugin, PluginDataManager dataManager) {
         this.plugin = plugin;
@@ -71,17 +77,6 @@ public class MaceControl implements Listener {
         if (meta != null) {
             int maceNumber = currentMaceCount + 1;
             meta.getPersistentDataContainer().set(MaceUtils.getMaceNumberKey(), PersistentDataType.INTEGER, maceNumber);
-
-            // Determine if this mace can be enchanted
-            boolean canEnchant = maceNumber <= enchantableMaces;
-
-            if (canEnchant) {
-                meta.setDisplayName("§6Mace #" + maceNumber + " §e(Enchantable)");
-                meta.setLore(List.of("§7This mace can be enchanted", "§7Mace " + maceNumber + " of " + maxMaces));
-            } else {
-                meta.setDisplayName("§6Mace #" + maceNumber + " §7(Normal)");
-                meta.setLore(List.of("§7This mace cannot be enchanted", "§7Mace " + maceNumber + " of " + maxMaces));
-            }
 
             mace.setItemMeta(meta);
             event.getInventory().setResult(mace);
@@ -127,6 +122,31 @@ public class MaceControl implements Listener {
             event.setCancelled(true);
             MessageUtils.sendMessage(player, "&cError: Invalid mace detected! Crafting cancelled.");
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onMaceDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player)) return;
+        Player player = (Player) event.getDamager();
+        ItemStack inHand = player.getInventory().getItemInMainHand();
+        if (!MaceUtils.isMace(inHand)) return;
+
+        int cooldownSec = plugin.getMaceCooldownSeconds();
+        if (cooldownSec <= 0) return;
+
+        long now = System.currentTimeMillis();
+        long cdMillis = cooldownSec * 1000L;
+        Long last = maceCooldowns.get(player.getUniqueId());
+        if (last != null && now - last < cdMillis) {
+            long remaining = cdMillis - (now - last);
+            int remainingTicks = (int) Math.max(1, remaining / 50L);
+            player.setCooldown(Material.MACE, remainingTicks);
+            event.setCancelled(true);
+            return;
+        }
+
+        maceCooldowns.put(player.getUniqueId(), now);
+        player.setCooldown(Material.MACE, cooldownSec * 20);
     }
 
     @EventHandler

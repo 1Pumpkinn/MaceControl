@@ -72,7 +72,7 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
 
     private List<String> handleMacesetTab(String[] args) {
         if (args.length == 1) {
-            return filterTab(Arrays.asList("max", "enchantable", "message"), args[0]);
+            return filterTab(Arrays.asList("max", "enchantable", "cooldown", "message"), args[0]);
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("message")) {
                 return filterTab(new ArrayList<>(EDITABLE_MESSAGES.keySet()), args[1]);
@@ -84,6 +84,10 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
                 int defaultEnchantable = plugin.getConfig().getDefaults() != null ?
                         plugin.getConfig().getDefaults().getInt("enchantable-maces", 1) : 1;
                 return Collections.singletonList(String.valueOf(defaultEnchantable));
+            } else if (args[0].equalsIgnoreCase("cooldown")) {
+                int defaultCooldown = plugin.getConfig().getDefaults() != null ?
+                        plugin.getConfig().getDefaults().getInt("mace-cooldown-seconds", 5) : 5;
+                return Collections.singletonList(String.valueOf(defaultCooldown));
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("message")) {
             String type = args[1].toLowerCase();
@@ -144,8 +148,9 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
                     "&6Mace Configuration Commands:",
                     "&e/maceset max <number> &7- Set maximum craftable maces",
                     "&e/maceset enchantable <number> &7- Set number of enchantable maces",
+                    "&e/maceset cooldown <seconds> &7- Set mace cooldown in seconds",
                     "&e/maceset message <path> <new message> &7- Change a plugin message",
-                    "&7Current Settings: Max: " + plugin.getMaxMaces() + ", Enchantable: " + plugin.getEnchantableMaces()
+                    "&7Current Settings: Max: " + plugin.getMaxMaces() + ", Enchantable: " + plugin.getEnchantableMaces() + ", Cooldown: " + plugin.getMaceCooldownSeconds() + "s"
             );
             return true;
         }
@@ -204,8 +209,12 @@ public class MaceCommands implements CommandExecutor, TabCompleter {
                 plugin.setEnchantableMaces(value);
                 MessageUtils.sendMessage(sender, "&aEnchantable maces set to &6" + value);
                 plugin.getLogger().info("Enchantable maces updated to " + value + " by " + sender.getName());
+            } else if (type.equals("cooldown")) {
+                plugin.setMaceCooldownSeconds(value);
+                MessageUtils.sendMessage(sender, "&aMace cooldown set to &6" + value + "s");
+                plugin.getLogger().info("Mace cooldown updated to " + value + " seconds by " + sender.getName());
             } else {
-                MessageUtils.sendMessage(sender, "&cInvalid type. Use 'max' or 'enchantable'.");
+                MessageUtils.sendMessage(sender, "&cInvalid type. Use 'max', 'enchantable', or 'cooldown'.");
             }
         } catch (NumberFormatException e) {
             MessageUtils.sendMessage(sender, "&cInvalid number format.");

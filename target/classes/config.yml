@@ -1,6 +1,7 @@
 # Mace Control Configuration
 max-maces: 3
 enchantable-maces: 1
+mace-cooldown-seconds: 5
 
 messages:
   # --- Important Messages (Editable via /maceset message <type>) ---

@@ -24,7 +24,7 @@ commands:
     permission: macecontrol.macecount
   maceset:
     description: Configure mace settings
-    usage: /maceset <max|enchantable> <value>
+    usage: /maceset <max|enchantable|cooldown> <value>
     permission: macecontrol.maceset
 
 permissions:

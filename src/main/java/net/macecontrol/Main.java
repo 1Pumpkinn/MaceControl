@@ -81,4 +81,13 @@ public final class Main extends JavaPlugin {
         getConfig().set("enchantable-maces", value);
         saveConfig();
     }
+
+    public int getMaceCooldownSeconds() {
+        return getConfig().getInt("mace-cooldown-seconds", 5);
+    }
+
+    public void setMaceCooldownSeconds(int value) {
+        getConfig().set("mace-cooldown-seconds", value);
+        saveConfig();
+    }
 }

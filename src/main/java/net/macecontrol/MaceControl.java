@@ -2,7 +2,6 @@ package net.macecontrol;
 
 import net.macecontrol.managers.PluginDataManager;
 import net.macecontrol.utils.MaceUtils;
-import net.macecontrol.utils.MessageUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -25,7 +24,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -47,11 +45,6 @@ public class MaceControl implements Listener {
 
     // Helper to send appropriate block message
     private void sendBlockMessage(Player player, int currentCount, int maxMaces, int enchantableMaces) {
-        if (plugin.isMaceBanned()) {
-            MessageUtils.sendMessage(player, "&cMace crafting is currently disabled.");
-        } else {
-            MessageUtils.sendLimitReached(player, maxMaces, enchantableMaces, currentCount);
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -103,7 +96,6 @@ public class MaceControl implements Listener {
 
         if (event.isShiftClick()) {
             event.setCancelled(true);
-            MessageUtils.sendMessage(player, "&cShift-clicking to craft maces is disabled.");
             player.updateInventory();
             return;
         }
@@ -111,16 +103,9 @@ public class MaceControl implements Listener {
         Integer maceNumber = MaceUtils.getMaceNumber(result);
         if (maceNumber != null) {
             dataManager.incrementTotalMaces();
-            MessageUtils.sendMaceCrafted(player, maceNumber, maxMaces, enchantableMaces, dataManager.getTotalMacesCrafted(), player.getName());
-            MessageUtils.broadcastMaceCrafted(maceNumber, maxMaces, enchantableMaces, dataManager.getTotalMacesCrafted(), player.getName());
             plugin.getLogger().info("Mace #" + maceNumber + " crafted by " + player.getName() + ". Total maces now: " + dataManager.getTotalMacesCrafted());
-
-            if (dataManager.getTotalMacesCrafted() >= maxMaces) {
-                MessageUtils.broadcastAllMacesCrafted();
-            }
         } else {
             event.setCancelled(true);
-            MessageUtils.sendMessage(player, "&cError: Invalid mace detected! Crafting cancelled.");
         }
     }
 
@@ -137,14 +122,15 @@ public class MaceControl implements Listener {
         long now = System.currentTimeMillis();
         long cdMillis = cooldownSec * 1000L;
         Long last = maceCooldowns.get(player.getUniqueId());
+
         if (last != null && now - last < cdMillis) {
-            long remaining = cdMillis - (now - last);
-            int remainingTicks = (int) Math.max(1, remaining / 50L);
-            player.setCooldown(Material.MACE, remainingTicks);
+            // Just cancel the hit — do NOT call setCooldown() again here,
+            // as that would reset the visual cooldown bar back to full.
             event.setCancelled(true);
             return;
         }
 
+        // First hit (or cooldown has expired): register timestamp and apply visual cooldown
         maceCooldowns.put(player.getUniqueId(), now);
         player.setCooldown(Material.MACE, cooldownSec * 20);
     }
@@ -163,7 +149,6 @@ public class MaceControl implements Listener {
         int enchantableLimit = plugin.getEnchantableMaces();
         if (MaceUtils.isMace(item) && !MaceUtils.isEnchantable(item, enchantableLimit)) {
             event.setCancelled(true);
-            MessageUtils.sendEnchantRestricted(enchanter, enchantableLimit);
         }
     }
 
@@ -182,16 +167,11 @@ public class MaceControl implements Listener {
 
                 if (event.getViewers().size() > 0 && event.getViewers().get(0) instanceof Player) {
                     Player player = (Player) event.getViewers().get(0);
-                    MessageUtils.sendAnvilRestricted(player, enchantableLimit);
                 }
                 return;
             }
-            // If it's not an enchantment book, it's either a repair or a rename, which is allowed.
-            // The commented-out code below is what was previously blocking renaming.
+            // If it's not an enchantment book, it's a repair or rename — allowed.
         }
-
-        // The old renaming block is now removed, allowing renaming for all maces.
-        // The logic above handles the enchanting restriction.
     }
 
     private boolean isRestrictedMace(ItemStack item, int limit) {
@@ -206,11 +186,7 @@ public class MaceControl implements Listener {
         int enchantableMaces = plugin.getEnchantableMaces();
         int currentCount = dataManager.getTotalMacesCrafted();
 
-        if (currentCount >= maxMaces) {
-            MessageUtils.sendJoinAllCrafted(player, maxMaces, currentCount);
-        } else {
-            MessageUtils.sendJoinMacesAvailable(player, maxMaces, enchantableMaces, currentCount);
-        }
+        // No join messages
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             removeInvalidMaces(player);
@@ -236,15 +212,14 @@ public class MaceControl implements Listener {
 
         // Prevent crafting a mace if the player has an item on their cursor
         if (event.getSlotType() == InventoryType.SlotType.RESULT &&
-            (event.getInventory().getType() == InventoryType.CRAFTING || event.getInventory().getType() == InventoryType.WORKBENCH)) {
+                (event.getInventory().getType() == InventoryType.CRAFTING || event.getInventory().getType() == InventoryType.WORKBENCH)) {
             ItemStack result = event.getCurrentItem();
             if (result != null && MaceUtils.isMace(result)) {
                 ItemStack cursor = event.getCursor();
                 if (cursor != null && cursor.getType() != org.bukkit.Material.AIR) {
                     event.setCancelled(true);
-                    MessageUtils.sendMessage(player, "&cPlease empty your cursor before crafting this item.");
-                    player.updateInventory(); // Force a client-side update
-                    return; // Stop processing this event further
+                    player.updateInventory();
+                    return;
                 }
             }
         }
@@ -254,35 +229,14 @@ public class MaceControl implements Listener {
         ItemStack cursorItem = event.getCursor();
         InventoryType invType = event.getInventory().getType();
 
-        // 1. Block putting non-enchantable maces in Anvils
-        // if (invType == InventoryType.ANVIL) {
-        //     // Regular click into slots
-        //     if ((event.getSlot() == 0 || event.getSlot() == 1) &&
-        //             (isRestrictedMace(clickedItem, enchantableLimit) || isRestrictedMace(cursorItem, enchantableLimit))) {
-        //         event.setCancelled(true);
-        //         MessageUtils.sendAnvilRestricted(player, enchantableLimit);
-        //         return;
-        //     }
-        //     // Shift click from inventory
-        //     if (event.isShiftClick() && isRestrictedMace(clickedItem, enchantableLimit)) {
-        //         event.setCancelled(true);
-        //         MessageUtils.sendAnvilRestricted(player, enchantableLimit);
-        //         return;
-        //     }
-        // }
-
-        // 2. Block putting non-enchantable maces in Enchanting Tables
+        // Block putting non-enchantable maces in Enchanting Tables
         if (invType == InventoryType.ENCHANTING) {
-            // Regular click into slots
             if (event.getSlot() == 0 && (isRestrictedMace(clickedItem, enchantableLimit) || isRestrictedMace(cursorItem, enchantableLimit))) {
                 event.setCancelled(true);
-                MessageUtils.sendEnchantRestricted(player, enchantableLimit);
                 return;
             }
-            // Shift click from inventory
             if (event.isShiftClick() && isRestrictedMace(clickedItem, enchantableLimit)) {
                 event.setCancelled(true);
-                MessageUtils.sendEnchantRestricted(player, enchantableLimit);
                 return;
             }
         }
@@ -297,7 +251,6 @@ public class MaceControl implements Listener {
     private void removeInvalidMaces(Player player) {
         PlayerInventory inventory = player.getInventory();
         int maxMaces = plugin.getMaxMaces();
-        int enchantableMaces = plugin.getEnchantableMaces();
         int removedCount = 0;
 
         for (int i = 0; i < inventory.getSize(); i++) {
@@ -309,7 +262,6 @@ public class MaceControl implements Listener {
         }
 
         if (removedCount > 0) {
-            MessageUtils.sendInvalidMacesRemoved(player, removedCount, maxMaces);
             plugin.getLogger().info("Removed " + removedCount + " invalid maces from player " + player.getName());
         }
     }

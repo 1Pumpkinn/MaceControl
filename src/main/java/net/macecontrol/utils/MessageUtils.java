@@ -18,6 +18,14 @@ public class MessageUtils {
         plugin = pluginInstance;
     }
 
+    private static boolean gameplayMessagesEnabled() {
+        return plugin != null && plugin.getConfig().getBoolean("messages-enabled", false);
+    }
+
+    private static boolean gameplayBroadcastsEnabled() {
+        return plugin != null && plugin.getConfig().getBoolean("broadcasts-enabled", false);
+    }
+
     public static void sendMessage(CommandSender sender, String message) {
         if (message == null || message.isEmpty()) return;
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
@@ -39,6 +47,7 @@ public class MessageUtils {
     }
 
     public static void sendLimitReached(CommandSender sender, int maxMaces, int enchantableMaces, int currentCount) {
+        if (!gameplayMessagesEnabled()) return;
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{max_maces}", String.valueOf(maxMaces));
         placeholders.put("{enchantable_maces}", String.valueOf(enchantableMaces));
@@ -47,27 +56,33 @@ public class MessageUtils {
     }
 
     public static void sendAnvilRestricted(CommandSender sender, int enchantableMaces) {
+        if (!gameplayMessagesEnabled()) return;
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{enchantable_maces}", String.valueOf(enchantableMaces));
         sendConfigMessage(sender, "restrictions.anvil-denied", placeholders);
     }
 
     public static void sendEnchantRestricted(CommandSender sender, int enchantableMaces) {
+        if (!gameplayMessagesEnabled()) return;
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{enchantable_maces}", String.valueOf(enchantableMaces));
         sendConfigMessage(sender, "restrictions.enchant-denied", placeholders);
     }
 
     public static void sendRenameRestricted(CommandSender sender) {
+        if (!gameplayMessagesEnabled()) return;
         sendConfigMessage(sender, "restrictions.rename-denied", new HashMap<>());
     }
 
     public static void sendMaceCrafted(CommandSender sender, int maceNumber, int maxMaces, int enchantableMaces, int currentCount, String playerName) {
+        if (!gameplayMessagesEnabled()) return;
         Map<String, String> placeholders = getCraftingPlaceholders(maceNumber, maxMaces, enchantableMaces, currentCount, playerName);
         sendConfigMessage(sender, "crafting.mace-crafted", placeholders);
     }
 
     public static void broadcastMaceCrafted(int maceNumber, int maxMaces, int enchantableMaces, int currentCount, String playerName) {
+        if (plugin == null) return;
+        if (!gameplayBroadcastsEnabled()) return;
         Map<String, String> placeholders = getCraftingPlaceholders(maceNumber, maxMaces, enchantableMaces, currentCount, playerName);
         String message = getConfigMessage("crafting.mace-broadcast", placeholders);
         if (message != null && !message.isEmpty()) {
@@ -76,6 +91,8 @@ public class MessageUtils {
     }
 
     public static void broadcastAllMacesCrafted() {
+        if (plugin == null) return;
+        if (!gameplayBroadcastsEnabled()) return;
         String message = getConfigMessage("crafting.all-crafted-broadcast", new HashMap<>());
         if (message != null && !message.isEmpty()) {
             broadcastMessage(message);
@@ -83,6 +100,7 @@ public class MessageUtils {
     }
 
     public static void sendJoinMacesAvailable(CommandSender sender, int maxMaces, int enchantableMaces, int currentCount) {
+        if (!gameplayMessagesEnabled()) return;
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{max_maces}", String.valueOf(maxMaces));
         placeholders.put("{enchantable_maces}", String.valueOf(enchantableMaces));
@@ -92,6 +110,7 @@ public class MessageUtils {
     }
 
     public static void sendJoinAllCrafted(CommandSender sender, int maxMaces, int currentCount) {
+        if (!gameplayMessagesEnabled()) return;
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{max_maces}", String.valueOf(maxMaces));
         placeholders.put("{current_count}", String.valueOf(currentCount));
@@ -99,6 +118,7 @@ public class MessageUtils {
     }
 
     public static void sendInvalidMacesRemoved(CommandSender sender, int count, int maxMaces) {
+        if (!gameplayMessagesEnabled()) return;
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{count}", String.valueOf(count));
         placeholders.put("{max_maces}", String.valueOf(maxMaces));
@@ -106,22 +126,28 @@ public class MessageUtils {
     }
 
     public static void sendHeavyCoreRestricted(CommandSender sender) {
+        if (!gameplayMessagesEnabled()) return;
         sendConfigMessage(sender, "restrictions.heavy-core", new HashMap<>());
     }
 
     public static void sendShiftClickDisabled(CommandSender sender) {
+        if (!gameplayMessagesEnabled()) return;
         sendConfigMessage(sender, "crafting.shift-click-blocked", new HashMap<>());
     }
 
     public static void sendBannedEnchantmentRemoved(CommandSender sender) {
+        if (!gameplayMessagesEnabled()) return;
         sendConfigMessage(sender, "enchantment-cleanup.removed", new HashMap<>());
     }
 
     public static void sendBannedEnchantmentRefund(CommandSender sender) {
+        if (!gameplayMessagesEnabled()) return;
         sendConfigMessage(sender, "enchantment-cleanup.refund", new HashMap<>());
     }
 
     public static void broadcastDataReset() {
+        if (plugin == null) return;
+        if (!gameplayBroadcastsEnabled()) return;
         String message = getConfigMessage("admin.data-reset", new HashMap<>());
         if (message != null && !message.isEmpty()) {
             broadcastMessage(message);
@@ -129,6 +155,8 @@ public class MessageUtils {
     }
 
     public static void broadcastCountAdjusted(int currentCount, int maxMaces) {
+        if (plugin == null) return;
+        if (!gameplayBroadcastsEnabled()) return;
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("{current_count}", String.valueOf(currentCount));
         placeholders.put("{max_maces}", String.valueOf(maxMaces));

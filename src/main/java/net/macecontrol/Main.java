@@ -1,93 +1,93 @@
 package net.macecontrol;
 
-import net.macecontrol.managers.EnchantmentManager;
-import net.macecontrol.managers.PluginDataManager;
-import net.macecontrol.utils.MaceUtils;
-import net.macecontrol.utils.MessageUtils;
+import net.macecontrol.commands.MaceCleanCommand;
+import net.macecontrol.commands.MaceCommandManager;
+import net.macecontrol.commands.MaceCountCommand;
+import net.macecontrol.commands.MaceFindCommand;
+import net.macecontrol.commands.MaceResetCommand;
+import net.macecontrol.commands.MaceSetCommand;
+import net.macecontrol.config.MaceConfig;
+import net.macecontrol.data.MaceDataStore;
+import net.macecontrol.listeners.BannedEnchantmentListener;
+import net.macecontrol.listeners.HeavyCoreListener;
+import net.macecontrol.listeners.MaceCombatListener;
+import net.macecontrol.listeners.MaceCraftListener;
+import net.macecontrol.listeners.MaceEnchantListener;
+import net.macecontrol.listeners.MaceInventoryGuardListener;
+import net.macecontrol.util.MaceItemUtil;
+import net.macecontrol.util.MessageUtil;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * Plugin entry point. Only wiring lives here - every feature has its own
+ * config/data/listener/command class, so this stays short no matter how the
+ * plugin grows.
+ */
 public final class Main extends JavaPlugin {
 
-    private PluginDataManager dataManager;
-    private MaceControl maceControl;
+    private MaceConfig maceConfig;
+    private MaceDataStore dataStore;
+    private MaceInventoryGuardListener inventoryGuard;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
-        MaceUtils.init(this);
-        MessageUtils.init(this);
-        dataManager = new PluginDataManager(this);
-        maceControl = new MaceControl(this, dataManager);
+        MaceItemUtil.init(this);
+        MessageUtil.init(this);
+        maceConfig = new MaceConfig(this);
+        dataStore = new MaceDataStore(this);
 
-        // Register event listeners
-        getServer().getPluginManager().registerEvents(maceControl, this);
-        getServer().getPluginManager().registerEvents(new EnchantmentManager(this), this);
-        getServer().getPluginManager().registerEvents(new HeavyCoreInteractions(this), this);
+        registerListeners();
+        registerCommands();
 
-        // Register commands
-        MaceCommands maceCommands = new MaceCommands(this, dataManager);
-        this.getCommand("macefind").setExecutor(maceCommands);
-        this.getCommand("macefind").setTabCompleter(maceCommands);
-        this.getCommand("maceclean").setExecutor(maceCommands);
-        this.getCommand("maceclean").setTabCompleter(maceCommands);
-        this.getCommand("macereset").setExecutor(maceCommands);
-        this.getCommand("macereset").setTabCompleter(maceCommands);
-        this.getCommand("macecount").setExecutor(maceCommands);
-        this.getCommand("macecount").setTabCompleter(maceCommands);
-        this.getCommand("maceset").setExecutor(maceCommands);
-        this.getCommand("maceset").setTabCompleter(maceCommands);
-
-        getLogger().info("-- Mace limit: " + getMaxMaces() + " maces ENABLED --");
-        getLogger().info("-- Current maces crafted: " + dataManager.getTotalMacesCrafted() + "/" + getMaxMaces() + " --");
+        getLogger().info("-- Mace limit: " + maceConfig.getMaxMaces() + " maces ENABLED --");
+        getLogger().info("-- Current maces crafted: " + dataStore.getTotalMacesCrafted() + "/" + maceConfig.getMaxMaces() + " --");
     }
 
     @Override
     public void onDisable() {
-        // Save data when plugin shuts down
-        if (dataManager != null) {
-            dataManager.forceSave();
+        if (dataStore != null) {
+            dataStore.forceSave();
             getLogger().info("Mace data saved on shutdown");
         }
         getLogger().info("-- MACE CONTROL DISABLED --");
     }
 
-    public PluginDataManager getDataManager() {
-        return dataManager;
+    private void registerListeners() {
+        inventoryGuard = new MaceInventoryGuardListener(this, maceConfig);
+        inventoryGuard.startPeriodicSweep();
+
+        getServer().getPluginManager().registerEvents(new MaceCraftListener(maceConfig, dataStore), this);
+        getServer().getPluginManager().registerEvents(new MaceCombatListener(maceConfig), this);
+        getServer().getPluginManager().registerEvents(new MaceEnchantListener(maceConfig), this);
+        getServer().getPluginManager().registerEvents(new BannedEnchantmentListener(this, maceConfig), this);
+        getServer().getPluginManager().registerEvents(inventoryGuard, this);
+        getServer().getPluginManager().registerEvents(new HeavyCoreListener(), this);
     }
 
-    public MaceControl getMaceControl() {
-        return maceControl;
+    private void registerCommands() {
+        MaceCommandManager commandManager = new MaceCommandManager();
+        commandManager.register(new MaceFindCommand(maceConfig, dataStore));
+        commandManager.register(new MaceCleanCommand(maceConfig, dataStore, inventoryGuard));
+        commandManager.register(new MaceResetCommand(maceConfig, dataStore));
+        commandManager.register(new MaceCountCommand(maceConfig, dataStore));
+        commandManager.register(new MaceSetCommand(this, maceConfig));
+
+        for (String commandName : new String[]{"macefind", "maceclean", "macereset", "macecount", "maceset"}) {
+            var command = getCommand(commandName);
+            if (command != null) {
+                command.setExecutor(commandManager);
+                command.setTabCompleter(commandManager);
+            }
+        }
     }
 
-    public int getMaxMaces() {
-        return getConfig().getInt("max-maces", 3);
+    public MaceConfig getMaceConfig() {
+        return maceConfig;
     }
 
-    public boolean isMaceBanned() {
-        return getMaxMaces() <= 0;
-    }
-
-    public void setMaxMaces(int value) {
-        getConfig().set("max-maces", value);
-        saveConfig();
-    }
-
-    public int getEnchantableMaces() {
-        return getConfig().getInt("enchantable-maces", 1);
-    }
-
-    public void setEnchantableMaces(int value) {
-        getConfig().set("enchantable-maces", value);
-        saveConfig();
-    }
-
-    public int getMaceCooldownSeconds() {
-        return getConfig().getInt("mace-cooldown-seconds", 5);
-    }
-
-    public void setMaceCooldownSeconds(int value) {
-        getConfig().set("mace-cooldown-seconds", value);
-        saveConfig();
+    public MaceDataStore getDataStore() {
+        return dataStore;
     }
 }

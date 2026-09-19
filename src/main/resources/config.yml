@@ -3,4 +3,14 @@ max-maces: 3
 enchantable-maces: 1
 mace-cooldown-seconds: 5
 
-# All chat/broadcast messages removed on request
+# Enable to show the config-driven messages below to players/broadcast them.
+# Both default to false so the plugin stays completely silent out of the box.
+messages-enabled: false
+broadcasts-enabled: false
+
+# Optional: enchantment keys (e.g. sharpness, knockback) that are never allowed
+# on any item. Leave empty to disable this feature entirely (default).
+banned-enchantments: []
+
+# All chat/broadcast message text was intentionally left blank on request -
+# add entries under "messages:" (see README) once messages-enabled is true.

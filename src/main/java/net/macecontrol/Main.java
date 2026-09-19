@@ -1,11 +1,6 @@
 package net.macecontrol;
 
-import net.macecontrol.commands.MaceCleanCommand;
-import net.macecontrol.commands.MaceCommandManager;
-import net.macecontrol.commands.MaceCountCommand;
-import net.macecontrol.commands.MaceFindCommand;
-import net.macecontrol.commands.MaceResetCommand;
-import net.macecontrol.commands.MaceSetCommand;
+import net.macecontrol.commands.*;
 import net.macecontrol.config.MaceConfig;
 import net.macecontrol.data.MaceDataStore;
 import net.macecontrol.listeners.BannedEnchantmentListener;

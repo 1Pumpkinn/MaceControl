@@ -23,12 +23,22 @@ public class MaceCleanCommand implements MaceSubCommand {
 
     @Override
     public String name() {
-        return "maceclean";
+        return "clean";
     }
 
     @Override
     public String permission() {
-        return "macecontrol.maceclean";
+        return "macecontrol.clean";
+    }
+
+    @Override
+    public String description() {
+        return "Remove invalid maces and reset mace data";
+    }
+
+    @Override
+    public String usageArgs() {
+        return "[confirm]";
     }
 
     @Override
@@ -42,7 +52,7 @@ public class MaceCleanCommand implements MaceSubCommand {
                     "&c• Clear the macedata.yml file",
                     "",
                     "&eThis is a DESTRUCTIVE operation!",
-                    "&cType '&e/maceclean confirm&c' to proceed."
+                    "&cType '&e/macecontrol clean confirm&c' to proceed."
             );
             return true;
         }

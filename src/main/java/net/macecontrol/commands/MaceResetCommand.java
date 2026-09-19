@@ -20,12 +20,22 @@ public class MaceResetCommand implements MaceSubCommand {
 
     @Override
     public String name() {
-        return "macereset";
+        return "reset";
     }
 
     @Override
     public String permission() {
-        return "macecontrol.macereset";
+        return "macecontrol.reset";
+    }
+
+    @Override
+    public String description() {
+        return "Reset all mace data";
+    }
+
+    @Override
+    public String usageArgs() {
+        return "[confirm]";
     }
 
     @Override
@@ -33,7 +43,7 @@ public class MaceResetCommand implements MaceSubCommand {
         if (args.length == 0 || !args[0].equalsIgnoreCase("confirm")) {
             MessageUtil.sendMessages(sender,
                     "&cThis will reset ALL mace data and allow new maces to be crafted!",
-                    "&cType '&e/macereset confirm&c' to proceed."
+                    "&cType '&e/macecontrol reset confirm&c' to proceed."
             );
             return true;
         }

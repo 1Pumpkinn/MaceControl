@@ -36,12 +36,22 @@ public class MaceSetCommand implements MaceSubCommand {
 
     @Override
     public String name() {
-        return "maceset";
+        return "set";
     }
 
     @Override
     public String permission() {
-        return "macecontrol.maceset";
+        return "macecontrol.set";
+    }
+
+    @Override
+    public String description() {
+        return "Configure mace settings";
+    }
+
+    @Override
+    public String usageArgs() {
+        return "<max|enchantable|cooldown|message> <value>";
     }
 
     @Override
@@ -61,10 +71,10 @@ public class MaceSetCommand implements MaceSubCommand {
     private void sendUsage(CommandSender sender) {
         MessageUtil.sendMessages(sender,
                 "&6Mace Configuration Commands:",
-                "&e/maceset max <number> &7- Set maximum craftable maces",
-                "&e/maceset enchantable <number> &7- Set number of enchantable maces",
-                "&e/maceset cooldown <seconds> &7- Set mace cooldown in seconds",
-                "&e/maceset message <path> <new message> &7- Change a plugin message",
+                "&e/macecontrol set max <number> &7- Set maximum craftable maces",
+                "&e/macecontrol set enchantable <number> &7- Set number of enchantable maces",
+                "&e/macecontrol set cooldown <seconds> &7- Set mace cooldown in seconds",
+                "&e/macecontrol set message <path> <new message> &7- Change a plugin message",
                 "&7Current Settings: Max: " + config.getMaxMaces() + ", Enchantable: " + config.getEnchantableMaces()
                         + ", Cooldown: " + config.getMaceCooldownSeconds() + "s"
         );
@@ -112,7 +122,7 @@ public class MaceSetCommand implements MaceSubCommand {
 
     private boolean handleSetMessage(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            MessageUtil.sendMessage(sender, "&cUsage: /maceset message <type> <new message>");
+            MessageUtil.sendMessage(sender, "&cUsage: /macecontrol set message <type> <new message>");
             MessageUtil.sendMessage(sender, "&7Types: &e" + String.join(", ", EDITABLE_MESSAGE_PATHS.keySet()));
             return true;
         }

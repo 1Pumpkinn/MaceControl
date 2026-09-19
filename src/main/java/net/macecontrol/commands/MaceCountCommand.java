@@ -20,12 +20,22 @@ public class MaceCountCommand implements MaceSubCommand {
 
     @Override
     public String name() {
-        return "macecount";
+        return "count";
     }
 
     @Override
     public String permission() {
-        return "macecontrol.macecount";
+        return "macecontrol.count";
+    }
+
+    @Override
+    public String description() {
+        return "View or set the mace count";
+    }
+
+    @Override
+    public String usageArgs() {
+        return "[set <value>]";
     }
 
     @Override
@@ -38,7 +48,7 @@ public class MaceCountCommand implements MaceSubCommand {
         }
 
         if (!args[0].equalsIgnoreCase("set") || args.length < 2) {
-            MessageUtil.sendMessage(sender, "&cUsage: /macecount [set <0-" + maxMaces + ">]");
+            MessageUtil.sendMessage(sender, "&cUsage: /macecontrol count [set <0-" + maxMaces + ">]");
             return true;
         }
 
@@ -53,7 +63,7 @@ public class MaceCountCommand implements MaceSubCommand {
             MessageUtil.sendMessage(sender, "&aMace count set to: &6" + newCount + "/" + maxMaces);
             MessageUtil.broadcastCountAdjusted(newCount, maxMaces);
         } catch (NumberFormatException e) {
-            MessageUtil.sendMessage(sender, "&cInvalid number! Usage: /macecount set <0-" + maxMaces + ">");
+            MessageUtil.sendMessage(sender, "&cInvalid number! Usage: /macecontrol count set <0-" + maxMaces + ">");
         }
         return true;
     }

@@ -1,0 +1,6 @@
+# Mace Control Configuration
+max-maces: 3
+enchantable-maces: 1
+mace-cooldown-seconds: 5
+
+# All chat/broadcast messages removed on request

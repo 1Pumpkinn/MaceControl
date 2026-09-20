@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Tally of valid/invalid/enchanted maces found by a {@link MaceScanner} pass. */
+/** Tally of valid/invalid/enchanted maces found by a {@link MaceScanner} pass, plus where each one was. */
 public class MaceScanResult {
 
     int totalValidMaces = 0;
@@ -14,8 +14,23 @@ public class MaceScanResult {
     final Set<Integer> maceNumbers = new HashSet<>();
     final Set<Integer> enchantedMaces = new HashSet<>();
 
+    /** One colour-coded line per mace found, e.g. "Chest at world 10,64,-3 > bundle #2". */
+    final List<String> locations = new ArrayList<>();
+
     public int getTotalValidMaces() {
         return totalValidMaces;
+    }
+
+    public int getInvalidMaces() {
+        return invalidMaces;
+    }
+
+    public int getTotalMaces() {
+        return totalValidMaces + invalidMaces;
+    }
+
+    public List<String> getLocations() {
+        return Collections.unmodifiableList(locations);
     }
 
     public String getDetailsString(int enchantableMaces) {

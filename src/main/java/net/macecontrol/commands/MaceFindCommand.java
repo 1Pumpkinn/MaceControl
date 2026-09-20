@@ -4,19 +4,17 @@ import net.macecontrol.config.MaceConfig;
 import net.macecontrol.data.MaceDataStore;
 import net.macecontrol.util.MessageUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class MaceFindCommand implements MaceSubCommand {
 
-    private static final long OFFLINE_LOOKBACK_MILLIS = TimeUnit.DAYS.toMillis(30);
+    /** Max location lines printed per section so a big find doesn't flood chat. */
+    private static final int MAX_LINES_PER_SECTION = 15;
 
     private final MaceConfig config;
     private final MaceDataStore dataStore;
@@ -38,7 +36,7 @@ public class MaceFindCommand implements MaceSubCommand {
 
     @Override
     public String description() {
-        return "Find all maces on the server";
+        return "Find all maces on the server (players, containers, entities, bundles, shulkers)";
     }
 
     @Override
@@ -47,83 +45,81 @@ public class MaceFindCommand implements MaceSubCommand {
         int enchantableMaces = config.getEnchantableMaces();
         MaceScanner scanner = new MaceScanner(maxMaces, enchantableMaces);
 
-        MessageUtil.sendMessages(sender,
-                "&6Scanning for maces on the server...",
-                "&7This may take a moment as we scan all loaded chunks..."
-        );
+        MessageUtil.sendMessage(sender, "&6Scanning online players and all loaded chunks for maces...");
 
-        Map<String, MaceScanResult> perPlayerDetails = new LinkedHashMap<>();
-        List<String> playerSummaries = new ArrayList<>();
-        int totalValidMaces = 0;
-
+        Map<String, MaceScanResult> playerResults = new LinkedHashMap<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             MaceScanResult result = scanner.scanPlayer(player);
-            if (result.getTotalValidMaces() > 0) {
-                playerSummaries.add(player.getName() + " §a(Online)");
-                perPlayerDetails.put(player.getName(), result);
-                totalValidMaces += result.getTotalValidMaces();
+            if (result.getTotalMaces() > 0) {
+                playerResults.put(player.getName(), result);
             }
         }
 
-        long recentCutoff = System.currentTimeMillis() - OFFLINE_LOOKBACK_MILLIS;
-        for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
-            if (offlinePlayer.isOnline() || offlinePlayer.getLastPlayed() <= recentCutoff) continue;
+        MaceScanResult containerResult = scanner.scanLoadedWorldContainers();
+        MaceScanResult entityResult = scanner.scanLoadedEntities();
 
-            MaceScanResult result = scanner.scanEnderChestOf(offlinePlayer);
-            if (result.getTotalValidMaces() > 0) {
-                playerSummaries.add(offlinePlayer.getName() + " §7(Offline - Enderchest only)");
-                perPlayerDetails.put(offlinePlayer.getName(), result);
-                totalValidMaces += result.getTotalValidMaces();
-            }
+        int totalValid = containerResult.getTotalValidMaces() + entityResult.getTotalValidMaces();
+        int totalInvalid = containerResult.getInvalidMaces() + entityResult.getInvalidMaces();
+        for (MaceScanResult result : playerResults.values()) {
+            totalValid += result.getTotalValidMaces();
+            totalInvalid += result.getInvalidMaces();
         }
 
-        MaceScanResult worldResult = scanner.scanLoadedWorldContainers();
-        totalValidMaces += worldResult.getTotalValidMaces();
-
-        reportResults(sender, maxMaces, enchantableMaces, totalValidMaces, playerSummaries, perPlayerDetails, worldResult);
-        return true;
-    }
-
-    private void reportResults(CommandSender sender, int maxMaces, int enchantableMaces, int totalValidMaces,
-                               List<String> playerSummaries, Map<String, MaceScanResult> perPlayerDetails,
-                               MaceScanResult worldResult) {
         String separator = "&6" + "=".repeat(50);
-
         MessageUtil.sendMessages(sender,
                 separator,
                 "&6Mace Status Report:",
                 separator,
-                "&eTotal valid maces found: &6" + totalValidMaces + "&e/&6" + maxMaces,
+                "&eTotal valid maces found: &6" + totalValid + "&e/&6" + maxMaces,
                 "&eTotal maces crafted: &6" + dataStore.getTotalMacesCrafted(),
                 "&eEnchantable maces: &6" + enchantableMaces
         );
+        if (totalInvalid > 0) {
+            MessageUtil.sendMessage(sender, "&cInvalid/stale maces found: &6" + totalInvalid + " &7(removed by /macecontrol clean)");
+        }
 
-        if (playerSummaries.isEmpty() && worldResult.getTotalValidMaces() == 0) {
-            MessageUtil.sendMessage(sender, "&cNo maces found anywhere on the server!");
+        if (playerResults.isEmpty() && containerResult.getTotalMaces() == 0 && entityResult.getTotalMaces() == 0) {
+            MessageUtil.sendMessage(sender, "&cNo maces found on online players or in loaded chunks!");
         } else {
-            if (!playerSummaries.isEmpty()) {
-                MessageUtil.sendMessage(sender, "&6Players with maces:");
-                for (String summary : playerSummaries) {
-                    MessageUtil.sendMessage(sender, "&e• " + summary);
-
-                    String playerName = summary.split(" ")[0];
-                    MaceScanResult details = perPlayerDetails.get(playerName);
-                    if (details != null) {
-                        MessageUtil.sendMessage(sender, "  &7Details: " + details.getDetailsString(enchantableMaces));
-                    }
+            if (!playerResults.isEmpty()) {
+                MessageUtil.sendMessage(sender, "&6Online players with maces:");
+                for (Map.Entry<String, MaceScanResult> entry : playerResults.entrySet()) {
+                    MessageUtil.sendMessage(sender, "&e• " + entry.getKey() + " &a(Online)");
+                    MessageUtil.sendMessage(sender, "  &7Details: " + entry.getValue().getDetailsString(enchantableMaces));
+                    sendLocations(sender, entry.getValue().getLocations());
                 }
             }
 
-            if (worldResult.getTotalValidMaces() > 0) {
-                MessageUtil.sendMessages(sender,
-                        "&6World containers (chests/shulkers):",
-                        "&e• Found in loaded chunks: &6" + worldResult.getTotalValidMaces() + " maces",
-                        "  &7Details: " + worldResult.getDetailsString(enchantableMaces),
-                        "  &7Note: Only loaded chunks were scanned"
-                );
-            }
+            sendSection(sender, "&6Containers (chests, barrels, hoppers, droppers, dispensers, pots, shelves, shulkers, etc.):",
+                    containerResult, enchantableMaces);
+            sendSection(sender, "&6Entities & ground (dropped items, item frames, armor stands, minecarts, mobs):",
+                    entityResult, enchantableMaces);
         }
 
-        MessageUtil.sendMessage(sender, separator);
+        MessageUtil.sendMessages(sender,
+                "&7Note: only online players and loaded chunks can be scanned - offline players' inventories and unloaded chunks are not included.",
+                separator
+        );
+        return true;
+    }
+
+    private void sendSection(CommandSender sender, String header, MaceScanResult result, int enchantableMaces) {
+        if (result.getTotalMaces() == 0) return;
+
+        MessageUtil.sendMessages(sender,
+                header,
+                "  &7Details: " + result.getDetailsString(enchantableMaces)
+        );
+        sendLocations(sender, result.getLocations());
+    }
+
+    private void sendLocations(CommandSender sender, List<String> locations) {
+        int shown = Math.min(locations.size(), MAX_LINES_PER_SECTION);
+        for (int i = 0; i < shown; i++) {
+            MessageUtil.sendMessage(sender, "  &7- " + locations.get(i));
+        }
+        if (locations.size() > shown) {
+            MessageUtil.sendMessage(sender, "  &7...and " + (locations.size() - shown) + " more");
+        }
     }
 }

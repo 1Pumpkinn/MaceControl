@@ -1,8 +1,8 @@
 package net.macecontrol.commands;
 
+import net.macecontrol.cleaning.MaceCleaner;
 import net.macecontrol.config.MaceConfig;
 import net.macecontrol.data.MaceDataStore;
-import net.macecontrol.listeners.MaceInventoryGuardListener;
 import net.macecontrol.util.MessageUtil;
 import org.bukkit.command.CommandSender;
 
@@ -13,12 +13,12 @@ public class MaceCleanCommand implements MaceSubCommand {
 
     private final MaceConfig config;
     private final MaceDataStore dataStore;
-    private final MaceInventoryGuardListener inventoryGuard;
+    private final MaceCleaner cleaner;
 
-    public MaceCleanCommand(MaceConfig config, MaceDataStore dataStore, MaceInventoryGuardListener inventoryGuard) {
+    public MaceCleanCommand(MaceConfig config, MaceDataStore dataStore, MaceCleaner cleaner) {
         this.config = config;
         this.dataStore = dataStore;
-        this.inventoryGuard = inventoryGuard;
+        this.cleaner = cleaner;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class MaceCleanCommand implements MaceSubCommand {
 
     @Override
     public String description() {
-        return "Remove invalid maces and reset mace data";
+        return "Deep-clean invalid maces everywhere and reset mace data";
     }
 
     @Override
@@ -46,27 +46,32 @@ public class MaceCleanCommand implements MaceSubCommand {
         if (args.length == 0 || !args[0].equalsIgnoreCase("confirm")) {
             MessageUtil.sendMessages(sender,
                     "&e&lMACECLEAN",
-                    "&7This command will:",
-                    "&c• Remove ALL invalid maces from online players",
-                    "&c• Reset mace crafting data (allows new maces to be crafted)",
-                    "&c• Clear the macedata.yml file",
+                    "&7This command will remove every invalid mace from:",
+                    "&c• Online players' inventories and ender chests",
+                    "&c• Chests, barrels, hoppers, droppers, dispensers, shulker boxes",
+                    "&c• Decorated pots and chiseled bookshelves/shelves",
+                    "&c• Bundles - and shulker boxes/bundles nested inside each other",
+                    "&c• Items dropped on the ground, in every loaded chunk",
+                    "&7Offline players are swept automatically the moment they rejoin.",
                     "",
+                    "&cIt will also reset mace crafting data (allows new maces to be crafted)",
                     "&eThis is a DESTRUCTIVE operation!",
                     "&cType '&e/macecontrol clean confirm&c' to proceed."
             );
             return true;
         }
 
-        MessageUtil.sendMessage(sender, "&6Cleaning invalid maces from all online players and resetting mace data...");
+        MessageUtil.sendMessage(sender, "&6Deep-cleaning invalid maces across the server and resetting mace data...");
 
-        int removed = inventoryGuard.cleanAllOnlinePlayers();
+        int removed = cleaner.cleanEverythingLoaded();
         dataStore.resetMaceData();
 
         MessageUtil.sendMessages(sender,
                 "&aClean completed!",
-                "&a• Removed " + removed + " invalid mace(s) from online players",
+                "&a• Removed " + removed + " invalid mace(s) from players, containers and the ground",
                 "&a• Mace data has been reset - players can now craft maces again!",
-                "&7Remember: Only " + config.getMaxMaces() + " maces total, " + config.getEnchantableMaces() + " can be enchanted."
+                "&7Remember: Only " + config.getMaxMaces() + " maces total, " + config.getEnchantableMaces() + " can be enchanted.",
+                "&7Note: only currently loaded chunks were swept, and offline players will be swept on their next join."
         );
         MessageUtil.broadcastDataReset();
         return true;

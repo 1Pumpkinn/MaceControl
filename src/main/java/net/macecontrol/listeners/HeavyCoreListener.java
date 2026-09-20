@@ -48,10 +48,10 @@ public class HeavyCoreListener implements Listener {
         boolean shouldCancel =
                 // Interacting directly inside the restricted container (put/take/swap/hotkey).
                 clickedInventory.equals(topInventory)
-                // Shift-clicking a heavy core from the player's inventory into it.
-                || (event.isShiftClick() && !clickedInventory.equals(topInventory))
-                // Double-click "collect to cursor" can pull a heavy core out of it.
-                || event.getAction() == InventoryAction.COLLECT_TO_CURSOR;
+                        // Shift-clicking a heavy core from the player's inventory into it.
+                        || (event.isShiftClick() && !clickedInventory.equals(topInventory))
+                        // Double-click "collect to cursor" can pull a heavy core out of it.
+                        || event.getAction() == InventoryAction.COLLECT_TO_CURSOR;
 
         if (shouldCancel) {
             event.setCancelled(true);

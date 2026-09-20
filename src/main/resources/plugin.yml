@@ -6,40 +6,24 @@ load: STARTUP
 authors: [ ___Pumpkinn ]
 
 commands:
-  macefind:
-    description: Find all maces on the server
-    usage: /macefind
-    permission: macecontrol.macefind
-  maceclean:
-    description: Clean invalid maces from online players and reset mace data
-    usage: /maceclean [confirm]
-    permission: macecontrol.maceclean
-  macereset:
-    description: Reset all mace data
-    usage: /macereset [confirm]
-    permission: macecontrol.macereset
-  macecount:
-    description: View or set the mace count
-    usage: /macecount [set <value>]
-    permission: macecontrol.macecount
-  maceset:
-    description: Configure mace settings
-    usage: /maceset <max|enchantable|cooldown> <value>
-    permission: macecontrol.maceset
+  macecontrol:
+    description: Manage MaceControl - find, clean, reset, count and configure maces
+    usage: /macecontrol <find|clean|reset|count|set> [args]
+    aliases: [ mc ]
 
 permissions:
-  macecontrol.macefind:
+  macecontrol.find:
     description: Allows finding maces on the server
     default: op
-  macecontrol.maceclean:
+  macecontrol.clean:
     description: Allows cleaning invalid maces
     default: op
-  macecontrol.macereset:
+  macecontrol.reset:
     description: Allows resetting mace data
     default: op
-  macecontrol.macecount:
+  macecontrol.count:
     description: Allows viewing and setting mace count
     default: op
-  macecontrol.maceset:
+  macecontrol.set:
     description: Allows configuring mace settings
     default: op

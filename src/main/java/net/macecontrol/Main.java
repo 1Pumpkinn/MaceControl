@@ -1,6 +1,12 @@
 package net.macecontrol;
 
-import net.macecontrol.commands.*;
+import net.macecontrol.cleaning.MaceCleaner;
+import net.macecontrol.commands.MaceCleanCommand;
+import net.macecontrol.commands.MaceCommandManager;
+import net.macecontrol.commands.MaceCountCommand;
+import net.macecontrol.commands.MaceFindCommand;
+import net.macecontrol.commands.MaceResetCommand;
+import net.macecontrol.commands.MaceSetCommand;
 import net.macecontrol.config.MaceConfig;
 import net.macecontrol.data.MaceDataStore;
 import net.macecontrol.listeners.BannedEnchantmentListener;
@@ -22,7 +28,7 @@ public final class Main extends JavaPlugin {
 
     private MaceConfig maceConfig;
     private MaceDataStore dataStore;
-    private MaceInventoryGuardListener inventoryGuard;
+    private MaceCleaner cleaner;
 
     @Override
     public void onEnable() {
@@ -32,6 +38,7 @@ public final class Main extends JavaPlugin {
         MessageUtil.init(this);
         maceConfig = new MaceConfig(this);
         dataStore = new MaceDataStore(this);
+        cleaner = new MaceCleaner(maceConfig);
 
         registerListeners();
         registerCommands();
@@ -50,7 +57,7 @@ public final class Main extends JavaPlugin {
     }
 
     private void registerListeners() {
-        inventoryGuard = new MaceInventoryGuardListener(this, maceConfig);
+        MaceInventoryGuardListener inventoryGuard = new MaceInventoryGuardListener(this, cleaner);
         inventoryGuard.startPeriodicSweep();
 
         getServer().getPluginManager().registerEvents(new MaceCraftListener(maceConfig, dataStore), this);
@@ -64,17 +71,17 @@ public final class Main extends JavaPlugin {
     private void registerCommands() {
         MaceCommandManager commandManager = new MaceCommandManager();
         commandManager.register(new MaceFindCommand(maceConfig, dataStore));
-        commandManager.register(new MaceCleanCommand(maceConfig, dataStore, inventoryGuard));
+        commandManager.register(new MaceCleanCommand(maceConfig, dataStore, cleaner));
         commandManager.register(new MaceResetCommand(maceConfig, dataStore));
         commandManager.register(new MaceCountCommand(maceConfig, dataStore));
         commandManager.register(new MaceSetCommand(this, maceConfig));
 
-        for (String commandName : new String[]{"macefind", "maceclean", "macereset", "macecount", "maceset"}) {
-            var command = getCommand(commandName);
-            if (command != null) {
-                command.setExecutor(commandManager);
-                command.setTabCompleter(commandManager);
-            }
+        var command = getCommand("macecontrol");
+        if (command != null) {
+            command.setExecutor(commandManager);
+            command.setTabCompleter(commandManager);
+        } else {
+            getLogger().severe("'macecontrol' command is missing from plugin.yml!");
         }
     }
 

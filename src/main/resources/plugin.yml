@@ -7,8 +7,8 @@ authors: [ ___Pumpkinn ]
 
 commands:
   macecontrol:
-    description: Manage MaceControl - find, clean, reset, count and configure maces
-    usage: /macecontrol <find|clean|reset|count|set> [args]
+    description: Manage MaceControl - find, clean (wipe + reset), count and configure maces
+    usage: /macecontrol <find|clean|count|set> [args]
     aliases: [ mc ]
 
 permissions:
@@ -16,10 +16,7 @@ permissions:
     description: Allows finding maces on the server
     default: op
   macecontrol.clean:
-    description: Allows cleaning invalid maces
-    default: op
-  macecontrol.reset:
-    description: Allows resetting mace data
+    description: Allows wiping all maces and resetting mace data
     default: op
   macecontrol.count:
     description: Allows viewing and setting mace count

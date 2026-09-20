@@ -1,5 +1,6 @@
 package net.macecontrol.data;
 
+import net.macecontrol.util.MaceItemUtil;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -8,24 +9,29 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Persists the running total of maces crafted on the server to macedata.yml.
+ * Persists the running total of maces crafted on the server, plus the current
+ * mace "generation", to macedata.yml.
  */
 public class MaceDataStore {
 
     private static final String DATA_FILE_NAME = "macedata.yml";
     private static final String TOTAL_CRAFTED_KEY = "totalMacesCrafted";
+    private static final String GENERATION_KEY = "maceGeneration";
 
     private final JavaPlugin plugin;
     private final File dataFile;
     private final FileConfiguration dataConfig;
 
     private int totalMacesCrafted;
+    private int maceGeneration;
 
     public MaceDataStore(JavaPlugin plugin) {
         this.plugin = plugin;
         this.dataFile = createDataFile();
         this.dataConfig = YamlConfiguration.loadConfiguration(dataFile);
         this.totalMacesCrafted = loadTotalCrafted();
+        this.maceGeneration = dataConfig.getInt(GENERATION_KEY, 0);
+        MaceItemUtil.setCurrentGeneration(maceGeneration);
     }
 
     private File createDataFile() {
@@ -53,6 +59,7 @@ public class MaceDataStore {
 
     private void persist() {
         dataConfig.set(TOTAL_CRAFTED_KEY, totalMacesCrafted);
+        dataConfig.set(GENERATION_KEY, maceGeneration);
         try {
             dataConfig.save(dataFile);
         } catch (IOException e) {
@@ -62,6 +69,10 @@ public class MaceDataStore {
 
     public int getTotalMacesCrafted() {
         return totalMacesCrafted;
+    }
+
+    public int getMaceGeneration() {
+        return maceGeneration;
     }
 
     public void incrementTotalMaces() {
@@ -76,9 +87,15 @@ public class MaceDataStore {
         persist();
     }
 
+    /**
+     * Resets the crafted counter and starts a new mace generation, which makes every
+     * previously crafted mace stale (and therefore removable by {@code MaceCleaner}).
+     */
     public void resetMaceData() {
         totalMacesCrafted = 0;
-        plugin.getLogger().info("All mace data has been reset");
+        maceGeneration++;
+        MaceItemUtil.setCurrentGeneration(maceGeneration);
+        plugin.getLogger().info("All mace data has been reset (generation " + maceGeneration + ")");
         persist();
     }
 

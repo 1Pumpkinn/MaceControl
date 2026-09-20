@@ -33,7 +33,7 @@ public class MaceCleanCommand implements MaceSubCommand {
 
     @Override
     public String description() {
-        return "Deep-clean invalid maces everywhere and reset mace data";
+        return "Remove every existing mace everywhere and reset mace data";
     }
 
     @Override
@@ -46,13 +46,14 @@ public class MaceCleanCommand implements MaceSubCommand {
         if (args.length == 0 || !args[0].equalsIgnoreCase("confirm")) {
             MessageUtil.sendMessages(sender,
                     "&e&lMACECLEAN",
-                    "&7This command will remove every invalid mace from:",
-                    "&c• Online players' inventories and ender chests",
+                    "&7This command will remove EVERY existing mace from:",
+                    "&c• Online players' inventories, armor, offhand, ender chests and cursor",
                     "&c• Chests, barrels, hoppers, droppers, dispensers, shulker boxes",
-                    "&c• Decorated pots and chiseled bookshelves/shelves",
+                    "&c• Decorated pots, chiseled bookshelves, furnaces, crafters and other containers",
                     "&c• Bundles - and shulker boxes/bundles nested inside each other",
+                    "&c• Item frames, armor stands, mob equipment, minecarts and other entity inventories",
                     "&c• Items dropped on the ground, in every loaded chunk",
-                    "&7Offline players are swept automatically the moment they rejoin.",
+                    "&7Offline players and unloaded chunks are swept automatically the next time they load/join.",
                     "",
                     "&cIt will also reset mace crafting data (allows new maces to be crafted)",
                     "&eThis is a DESTRUCTIVE operation!",
@@ -61,17 +62,19 @@ public class MaceCleanCommand implements MaceSubCommand {
             return true;
         }
 
-        MessageUtil.sendMessage(sender, "&6Deep-cleaning invalid maces across the server and resetting mace data...");
+        MessageUtil.sendMessage(sender, "&6Removing all maces across the server and resetting mace data...");
 
-        int removed = cleaner.cleanEverythingLoaded();
+        // Reset first: this starts a new mace generation, so every mace that exists right now
+        // becomes stale and the sweep below removes all of them.
         dataStore.resetMaceData();
+        int removed = cleaner.cleanEverythingLoaded();
 
         MessageUtil.sendMessages(sender,
                 "&aClean completed!",
-                "&a• Removed " + removed + " invalid mace(s) from players, containers and the ground",
+                "&a• Removed " + removed + " mace(s) from players, containers, entities and the ground",
                 "&a• Mace data has been reset - players can now craft maces again!",
                 "&7Remember: Only " + config.getMaxMaces() + " maces total, " + config.getEnchantableMaces() + " can be enchanted.",
-                "&7Note: only currently loaded chunks were swept, and offline players will be swept on their next join."
+                "&7Note: only loaded chunks were swept now; offline players and unloaded chunks are swept when they next load/join."
         );
         MessageUtil.broadcastDataReset();
         return true;

@@ -5,7 +5,6 @@ import net.macecontrol.commands.MaceCleanCommand;
 import net.macecontrol.commands.MaceCommandManager;
 import net.macecontrol.commands.MaceCountCommand;
 import net.macecontrol.commands.MaceFindCommand;
-import net.macecontrol.commands.MaceResetCommand;
 import net.macecontrol.commands.MaceSetCommand;
 import net.macecontrol.config.MaceConfig;
 import net.macecontrol.data.MaceDataStore;
@@ -72,7 +71,6 @@ public final class Main extends JavaPlugin {
         MaceCommandManager commandManager = new MaceCommandManager();
         commandManager.register(new MaceFindCommand(maceConfig, dataStore));
         commandManager.register(new MaceCleanCommand(maceConfig, dataStore, cleaner));
-        commandManager.register(new MaceResetCommand(maceConfig, dataStore));
         commandManager.register(new MaceCountCommand(maceConfig, dataStore));
         commandManager.register(new MaceSetCommand(this, maceConfig));
 
